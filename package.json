@@ -1,0 +1,29 @@
+{
+  "name": "fmr-searchkit",
+  "version": "1.0.0",
+  "description": "search tools for feathers mongo and react",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/doug-patterson/FMR-SearchKit.git"
+  },
+  "keywords": [
+    "feathersjs",
+    "mongodb",
+    "reactjs",
+    "search"
+  ],
+  "author": "Douglas Patterson",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/doug-patterson/FMR-SearchKit/issues"
+  },
+  "homepage": "https://github.com/doug-patterson/FMR-SearchKit#readme",
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "mongodb": "^4.11.0"
+  }
+}
