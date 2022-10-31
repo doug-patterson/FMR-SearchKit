@@ -276,7 +276,7 @@ let lookupStages = (applyRestrictions, user) => async lookups => {
 module.exports = ({
   services,
   restrictSchemasForUser = _.constant(_.identity),
-  servicesPath = './services/'
+  servicesPath = 'services/'
 }) => async (app) => {
   let schemas = _.flow(
     _.map(service => [service, require(`${servicesPath}${service}/schema`)]),
