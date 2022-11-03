@@ -1,7 +1,3 @@
-let feathers = require('./feathers')
-let components = require('./components/dist')
+let search = require('./feathers')
 
-module.exports = {
-  feathers,
-  components
-}
+module.exports = search
