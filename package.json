@@ -1,6 +1,6 @@
 {
   "name": "fmr-searchkit",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "search tools for feathers mongo and react",
   "main": "index.js",
   "type": "module",
