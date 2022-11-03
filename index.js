@@ -1,7 +1,7 @@
 let feathers = require('./feathers')
-let react = require('./react/dist')
+let components = require('./components/dist')
 
 module.exports = {
   feathers,
-  react
+  components
 }
