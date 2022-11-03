@@ -4,7 +4,6 @@
   "description": "search tools for feathers mongo and react",
   "main": "index.js",
   "scripts": {
-    "build": "rollup -c --bundleConfigAsCjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
