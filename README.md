@@ -1,2 +1,2 @@
 # FMR-SearchKit
-Build mongodb search interfaces with cross collection lookups all white preserving the logic in your FeathersJS hooks
+Build rich mongodb search interfaces with cross collection lookups while preserving the security and business logic in your FeathersJS hooks
