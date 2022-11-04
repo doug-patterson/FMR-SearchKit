@@ -6,14 +6,18 @@ let arrayToObject = _.curry((key, val, arr) =>
   _.flow(_.keyBy(key), _.mapValues(val))(arr)
 )
 
-let makeContextForBeforeHooks = ({ app, user }) => ({
-  params: { user, query: {} },
+let makeContextForBeforeHooks = ({ app, params, collection }) => ({
+  params: { ...params, query: {} },
+  type: 'before',
+  method: 'find',
+  service: app.service(collection),
+  provider: params.provider,
   app,
 })
 
-let applyServiceRestrictions = ({ app, hooks }) => async (collection, user) => {
+let applyServiceRestrictions = ({ app, hooks }) => async (collection, params) => {
   let beforeHooks = _.get(`${collection}.before`, hooks)
-  let beforeContext = makeContextForBeforeHooks({ app, user })
+  let beforeContext = makeContextForBeforeHooks({ app, params, collection })
   
   for (let hook of beforeHooks) {
     beforeContext = (await hook(beforeContext)) || beforeContext
@@ -22,16 +26,19 @@ let applyServiceRestrictions = ({ app, hooks }) => async (collection, user) => {
   return [{ $match: beforeContext.params.query }]
 }
 
-let makeContextForAfterHooks = ({ app, user, field, record }) => ({
-  params: { user },
+let makeContextForAfterHooks = ({ app, params, field, record }) => ({
+  params,
+  method: 'find',
+  type: 'after',
   result: field ? record[field] : record,
+  provider: params.provider,
   app,
 })
 
-let getAfterHookExecutor = ({ app, hooks }) => ({ collection, field, user }) => async record => {
+let getAfterHookExecutor = ({ app, hooks }) => ({ collection, field, params }) => async record => {
   let afterContext = makeContextForAfterHooks({
     app,
-    user,
+    params,
     field,
     record,
   })
@@ -124,10 +131,10 @@ let typeAggs = applyRestrictions => ({
   arrayElementPropFacet: async (
     { key, field, prop, values = [], isMongoId },
     filters,
-    user,
-    collection
+    collection,
+    params
   ) => [
-    ...(await applyRestrictions(collection, user)),
+    ...(await applyRestrictions(collection, params)),
     ...getTypeFilterStages(_.reject({ key }, filters)),
     { $unwind: { path: `$${field}` } },
     { $group: { _id: `$${field}.${prop}`, count: { $addToSet: '$_id' } } },
@@ -156,7 +163,7 @@ let typeAggs = applyRestrictions => ({
     user,
     collection
   ) => [
-    ...(await applyRestrictions(collection, user)),
+    ...(await applyRestrictions(collection, params)),
     ...getTypeFilterStages(_.reject({ key }, filters)),
     { $unwind: { path: `$${field}`, preserveNullAndEmptyArrays: true } },
     { $group: { _id: `$${field}`, count: { $sum: 1 } } },
@@ -167,7 +174,7 @@ let typeAggs = applyRestrictions => ({
               from: lookup.from,
               let: { localId: '$_id' },
               pipeline: [
-                ...(await applyRestrictions(lookup.from, user)),
+                ...(await applyRestrictions(lookup.from, params)),
                 {
                   $match: {
                     $expr: { $eq: [`$${lookup.foreignField}`, '$$localId'] },
@@ -213,18 +220,18 @@ let typeAggs = applyRestrictions => ({
 
 let noResultsTypes = ['hidden', 'numeric', 'boolean', 'arraySize']
 
-let getFacets = applyRestrictions => async (filters, user, collection) => {
+let getFacets = applyRestrictions => async (filters, collection, params) => {
   let facetFilters = _.omitBy(f => _.includes(f.type, noResultsTypes), filters)
   let result = {}
 
   for (let filter of _.values(facetFilters)) {
-    result[filter.key] = await typeAggs(applyRestrictions)[filter.type](filter, filters, user, collection)
+    result[filter.key] = await typeAggs(applyRestrictions)[filter.type](filter, filters, collection, params)
   }
 
   return result
 }
 
-let lookupStages = (applyRestrictions, user) => async lookups => {
+let lookupStages = (applyRestrictions, params) => async lookups => {
   let result = []
   for (let lookupName in lookups) {
     let {
@@ -242,7 +249,7 @@ let lookupStages = (applyRestrictions, user) => async lookups => {
           from,
           let: { localVal: `$${localField}` },
           pipeline: [
-            ...(await applyRestrictions(from, user)),
+            ...(await applyRestrictions(from, params)),
             {
               $match: {
                 $expr: {
@@ -325,23 +332,23 @@ module.exports = ({
 
       let aggs = {
         results: [
-          ...(await applyRestrictions(collection, params.user)),
+          ...(await applyRestrictions(collection, params)),
           ...fullQuery,
           ...(sortField
             ? [{ $sort: { [sortField]: sortDir === 'asc' ? 1 : -1 } }]
             : []),
           { $skip: (page - 1) * pageSize },
           { $limit: pageSize },
-          ...(lookup ? _.flatten(await lookupStages(applyRestrictions, params.user)(lookup)) : []),
+          ...(lookup ? _.flatten(await lookupStages(applyRestrictions, params)(lookup)) : []),
           { $project: project },
         ],
         resultsCount: [
-          ...(await applyRestrictions(collection, params.user)),
+          ...(await applyRestrictions(collection, params)),
           ...fullQuery,
           ..._.flatMap(typeFilterStages, filters),
           { $group: { _id: null, count: { $sum: 1 } } },
         ],
-        ...(await getFacets(applyRestrictions)(filters, params.user, collection)),
+        ...(await getFacets(applyRestrictions)(filters, collection, params)),
       }
 
       let result = _.fromPairs(
@@ -358,7 +365,7 @@ module.exports = ({
       )
 
       result.results = await Promise.all(
-        _.map(afterHookExecutor({ collection, user: params.user }), result.results)
+        _.map(afterHookExecutor({ collection, params }), result.results)
       )
 
       for (let field in lookup) {
@@ -371,7 +378,7 @@ module.exports = ({
               [field]: await afterHookExecutor({
                 collection: from,
                 field,
-                user: params.user
+                params
               })(result),
             }),
             result.results
