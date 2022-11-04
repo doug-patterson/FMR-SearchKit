@@ -48,7 +48,7 @@ let getAfterHookExecutor = ({ app, hooks }) => ({ collection, field, params }) =
   for (let hook of afterHooks) {
     afterContext = (await hook(afterContext)) || afterContext
   }
-  return _.get('result', afterContext)
+  return _.flow(_.castArray, _.first)(_.get('result', afterContext))
 }
 
 let typeFilters = {
