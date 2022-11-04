@@ -160,8 +160,8 @@ let typeAggs = applyRestrictions => ({
   facet: async (
     { key, field, values = [], isMongoId, lookup },
     filters,
-    user,
-    collection
+    collection,
+    params
   ) => [
     ...(await applyRestrictions(collection, params)),
     ...getTypeFilterStages(_.reject({ key }, filters)),
