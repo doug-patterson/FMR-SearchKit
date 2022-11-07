@@ -388,7 +388,7 @@ module.exports = ({
       }
 
       if (includeSchema) {
-        result.schema = await app.service('schema').get('collection')
+        result.schema = await app.service('schema').get(collection)
       }
 
       return result
