@@ -284,7 +284,7 @@ module.exports = ({
   services,
   restrictSchemasForUser = _.constant(_.identity),
   servicesPath = 'services/'
-}) => async (app) => {
+}) => async app => {
   let schemas = _.flow(
     _.map(service => [service, require(`${servicesPath}${service}/schema`)]),
     _.fromPairs,
@@ -322,6 +322,7 @@ module.exports = ({
         pageSize = 100,
         filters,
         lookup,
+        includeSchema
       },
       params
     ) => {
@@ -384,6 +385,10 @@ module.exports = ({
             result.results
           )
         )
+      }
+
+      if (includeSchema) {
+        result.schema = await app.service('schema').get('collection')
       }
 
       return result
