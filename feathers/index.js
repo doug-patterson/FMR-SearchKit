@@ -215,6 +215,9 @@ let typeAggs = applyRestrictions => ({
         },
       },
     },
+    {
+      $sort: { count: -1 }
+    }
   ],
 })
 
