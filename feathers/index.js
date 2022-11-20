@@ -152,7 +152,6 @@ let typeAggs = applyRestrictions => ({
     },
     {
       $sort: {
-        checked: -1,
         count: -1,
       },
     },
@@ -163,6 +162,10 @@ let typeAggs = applyRestrictions => ({
     collection,
     params
   ) => [
+    // we should actually figure out what collections we'll be doing lookups on
+    // beforehand and run all the apply restrictions calls in parallel with 
+    // Promise.all and then pass the results into all these functions. Right now
+    // we're running these potentially heavy feathers hook pipelines repeatedly and serially
     ...(await applyRestrictions(collection, params)),
     ...getTypeFilterStages(_.reject({ key }, filters)),
     { $unwind: { path: `$${field}`, preserveNullAndEmptyArrays: true } },
@@ -172,6 +175,7 @@ let typeAggs = applyRestrictions => ({
           {
             $lookup: {
               from: lookup.from,
+              // need to add support for `localField`
               let: { localId: '$_id' },
               pipeline: [
                 ...(await applyRestrictions(lookup.from, params)),
@@ -227,12 +231,91 @@ let getFacets = applyRestrictions => async (filters, collection, params) => {
   let facetFilters = _.omitBy(f => _.includes(f.type, noResultsTypes), filters)
   let result = {}
 
+  // parallelize this with Promise.all
   for (let filter of _.values(facetFilters)) {
     result[filter.key] = await typeAggs(applyRestrictions)[filter.type](filter, filters, collection, params)
   }
 
   return result
 }
+
+const fullDateGroup = field => ({
+  year: { $year: `$${field}` },
+  month: { $month: `$${field}` },
+  week: { $week: `$${field}` },
+  day: { $dayOfMonth: `$${field}` }
+})
+
+const periods = ['day', 'month', 'year']
+
+const dateGroup = (field, period) => {
+  let dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
+
+  return _.pick(dateGroupPick, fullDateGroup(field))
+}
+
+const dateProject = period => {
+  let dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
+
+  let [first, ...rest] = _.map(field => `$_id.${field}`, dateGroupPick)
+  let arr = [{ $toString: first }]
+  
+  while (field = rest.shift()) {
+    arr.push('/', { $toString: field })
+  }
+
+  return { $concat: arr }
+}
+
+const dateProject2 = period => {
+  let dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
+
+  let [first, ...rest] = _.map(field => `$_id.${field}`, _.reverse(dateGroupPick))
+  let arr = [{ $toString: first }]
+  
+  while (field = rest.shift()) {
+    arr.push('-', { $toString: field })
+  }
+
+  return { $concat: arr }
+}
+
+
+const getChart = type => ({
+  dateIntervalBars: ({ x, y, group, period }) => [
+    { $group: { _id: { [`${period}`]: { [`$${period}`]: `$${x}` }, group: `$${group}` }, value: { $sum: `$${y}` } } },
+  ],
+  dateLineSingle: ({ x, y, period }) => [
+    { $group: { _id: dateGroup(x, period), value: { $sum: `$${y}` }, idx: { $min: `$${x}`} } },
+    { $sort: { idx: 1 } },
+    { $project: {
+      _id: 0,
+      x: dateProject(period),
+      y: '$value'
+    } },
+    { $group: { _id: null, data: { $push: '$$ROOT' } } },
+    { $project: { _id: 0, id: 'results', data: 1 } }
+  ],
+  // combine this with previous
+  quantityByPeriodCalendar: ({ x, y }) => [
+    { $group: { _id: dateGroup(x, 'day'), value: { $sum: `$${y}` }, idx: { $min: `$${x}`} } },
+    { $sort: { idx: 1 } },
+    { $project: {
+      _id: 0,
+      day: dateProject2('day'),
+      value: '$value'
+    } },
+  ],
+  topNPie: ({ field, size = 10, unwind }) => [
+    ...[(unwind ? { $unwind: `$${unwind}` } : {})],
+    { $group: { _id: `$${field}`, count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+    { $limit: size },
+    { $project: { _id: 0, id: `$_id`, label: `$_id`, value: `$count` } }
+  ]
+}[type])
+
+let getCharts = charts => _.zipObject(_.map('key', charts), _.map(chart =>getChart(chart.type)(chart), charts))
 
 let lookupStages = (applyRestrictions, params) => async lookups => {
   let result = []
@@ -324,6 +407,7 @@ module.exports = ({
         page = 1,
         pageSize = 100,
         filters,
+        charts,
         lookup,
         includeSchema
       },
@@ -335,22 +419,24 @@ module.exports = ({
       let fullQuery = getTypeFilterStages(filters)
 
       let aggs = {
-        results: [
+        resultsFacet: [
           ...(await applyRestrictions(collection, params)),
           ...fullQuery,
-          ...(sortField
-            ? [{ $sort: { [sortField]: sortDir === 'asc' ? 1 : -1 } }]
-            : []),
-          { $skip: (page - 1) * pageSize },
-          { $limit: pageSize },
-          ...(lookup ? _.flatten(await lookupStages(applyRestrictions, params)(lookup)) : []),
-          { $project: project },
-        ],
-        resultsCount: [
-          ...(await applyRestrictions(collection, params)),
-          ...fullQuery,
-          ..._.flatMap(typeFilterStages, filters),
-          { $group: { _id: null, count: { $sum: 1 } } },
+          { $facet: {
+            results: [
+              ...(sortField
+                ? [{ $sort: { [sortField]: sortDir === 'asc' ? 1 : -1 } }]
+                : []),
+              { $skip: (page - 1) * pageSize },
+              { $limit: pageSize },
+              ...(lookup ? _.flatten(await lookupStages(applyRestrictions, params)(lookup)) : []),
+              { $project: project },
+            ],
+            resultsCount: [
+              { $group: { _id: null, count: { $sum: 1 } } },
+            ],
+            ...getCharts(charts)
+          } }
         ],
         ...(await getFacets(applyRestrictions)(filters, collection, params)),
       }
@@ -367,6 +453,15 @@ module.exports = ({
           }, aggs)
         )
       )
+
+      let resultsFacet = _.first(result.resultsFacet)
+
+      result = {
+        ..._.omit(['resultsFacet'], result),
+        results: resultsFacet.results,
+        resultsCount: _.first(resultsFacet.resultsCount),
+        charts: _.omit(['results', 'resultsCount'], resultsFacet)
+      }
 
       result.results = await Promise.all(
         _.map(afterHookExecutor({ collection, params }), result.results)
