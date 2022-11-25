@@ -175,7 +175,6 @@ let typeAggs = applyRestrictions => ({
           {
             $lookup: {
               from: lookup.from,
-              // need to add support for `localField`
               let: { localId: '$_id' },
               pipeline: [
                 ...(await applyRestrictions(lookup.from, params)),
@@ -306,15 +305,40 @@ const getChart = type => ({
       value: '$value'
     } },
   ],
-  topNPie: ({ field, size = 10, unwind }) => [
+  topNPie: ({ field, size = 10, unwind, lookup }) => [
     ...[(unwind ? { $unwind: `$${unwind}` } : {})],
     { $group: { _id: `$${field}`, count: { $sum: 1 } } },
     { $sort: { count: -1 } },
     { $limit: size },
-    { $project: { _id: 0, id: `$_id`, label: `$_id`, value: `$count` } }
+    ...(lookup ? [
+      { $lookup: {
+        from: lookup.from,
+        as: 'lookup',
+        localField: '_id',
+        foreignField: 'item_data.variations.id'
+      } },
+      { $unwind: '$lookup' },
+      { $project: {
+        _id: 1,
+        count: 1,
+        originalLookup: '$lookup',
+        ...arrayToObject(
+          include => `lookup.${include}`,
+          _.constant(1)
+        )(lookup.include),
+      } }] : []
+    ),
+    { $project: {
+      _id: 0,
+      id: `$_id`,
+      label: '$_id',
+      lookup: 1,
+      value: `$count`
+    } }
   ]
 }[type])
 
+// once we memoize `applyRestrictions` we can use it synchronously here too
 let getCharts = charts => _.zipObject(_.map('key', charts), _.map(chart =>getChart(chart.type)(chart), charts))
 
 let lookupStages = (applyRestrictions, params) => async lookups => {
@@ -413,8 +437,8 @@ module.exports = ({
       },
       params
     ) => {
-      let project = arrayToObject(_.identity, _.constant(1))(include)
-      project._id = _.includes('_id', include) ? 1 : 0
+      let schema = await app.service('schema').get(collection)
+      let project = arrayToObject(_.identity, _.constant(1))(include || _.keys(schema.properties))
 
       let fullQuery = getTypeFilterStages(filters)
 
@@ -440,6 +464,8 @@ module.exports = ({
         ],
         ...(await getFacets(applyRestrictions)(filters, collection, params)),
       }
+
+      console.log(JSON.stringify(aggs, 0, 2))
 
       let result = _.fromPairs(
         await Promise.all(
@@ -486,7 +512,7 @@ module.exports = ({
       }
 
       if (includeSchema) {
-        result.schema = await app.service('schema').get(collection)
+        result.schema = schema
       }
 
       return result
