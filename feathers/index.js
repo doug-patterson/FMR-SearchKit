@@ -129,19 +129,57 @@ let getTypeFilterStages = queryFilters =>
 
 let typeAggs = applyRestrictions => ({
   arrayElementPropFacet: async (
-    { key, field, prop, values = [], isMongoId },
+    { key, field, prop, values = [], isMongoId, lookup },
     filters,
     collection,
-    params
+    params,
+    size = 100
   ) => [
     ...(await applyRestrictions(collection, params)),
     ...getTypeFilterStages(_.reject({ key }, filters)),
     { $unwind: { path: `$${field}` } },
     { $group: { _id: `$${field}.${prop}`, count: { $addToSet: '$_id' } } },
+    { $limit: _.clamp(0, 10000, size) },
+    ...(lookup
+      ? [
+          {
+            $lookup: {
+              from: lookup.from,
+              let: { localId: '$_id' },
+              pipeline: [
+                ...(await applyRestrictions(lookup.from, params)),
+                {
+                  $match: {
+                    $expr: { $eq: [`$${lookup.foreignField}`, '$$localId'] },
+                  },
+                },
+              ],
+              as: 'lookup',
+            },
+          },
+          {
+            $unwind: {
+              path: '$lookup',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              count: 1,
+              ...arrayToObject(
+                include => `lookup.${include}`,
+                _.constant(1)
+              )(lookup.include),
+            },
+          },
+        ]
+      : []),
     {
       $project: {
         _id: 1,
         count: { $size: '$count' },
+        lookup: 1,
         checked: {
           $in: [
             '$_id',
