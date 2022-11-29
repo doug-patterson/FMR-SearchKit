@@ -127,15 +127,14 @@ let typeFilterStages = filter => typeFilters[filter.type](filter)
 let getTypeFilterStages = queryFilters =>
   _.flatMap(typeFilterStages, queryFilters)
 
-let typeAggs = applyRestrictions => ({
-  arrayElementPropFacet: async (
+let typeAggs = restrictions => ({
+  arrayElementPropFacet: (
     { key, field, prop, values = [], isMongoId, lookup },
     filters,
     collection,
-    params,
     size = 100
   ) => [
-    ...(await applyRestrictions(collection, params)),
+    ...restrictions[collection],
     ...getTypeFilterStages(_.reject({ key }, filters)),
     { $unwind: { path: `$${field}` } },
     { $group: { _id: `$${field}.${prop}`, count: { $addToSet: '$_id' } } },
@@ -147,7 +146,7 @@ let typeAggs = applyRestrictions => ({
               from: lookup.from,
               let: { localId: '$_id' },
               pipeline: [
-                ...(await applyRestrictions(lookup.from, params)),
+                ...restrictions[lookup.from],
                 {
                   $match: {
                     $expr: { $eq: [`$${lookup.foreignField}`, '$$localId'] },
@@ -194,17 +193,16 @@ let typeAggs = applyRestrictions => ({
       },
     },
   ],
-  facet: async (
+  facet: (
     { key, field, values = [], isMongoId, lookup },
     filters,
-    collection,
-    params
+    collection
   ) => [
     // we should actually figure out what collections we'll be doing lookups on
     // beforehand and run all the apply restrictions calls in parallel with 
     // Promise.all and then pass the results into all these functions. Right now
     // we're running these potentially heavy feathers hook pipelines repeatedly and serially
-    ...(await applyRestrictions(collection, params)),
+    ...restrictions[collection],
     ...getTypeFilterStages(_.reject({ key }, filters)),
     { $unwind: { path: `$${field}`, preserveNullAndEmptyArrays: true } },
     { $group: { _id: `$${field}`, count: { $sum: 1 } } },
@@ -215,7 +213,7 @@ let typeAggs = applyRestrictions => ({
               from: lookup.from,
               let: { localId: '$_id' },
               pipeline: [
-                ...(await applyRestrictions(lookup.from, params)),
+                ...restrictions[lookup.from],
                 {
                   $match: {
                     $expr: { $eq: [`$${lookup.foreignField}`, '$$localId'] },
@@ -264,13 +262,12 @@ let typeAggs = applyRestrictions => ({
 
 let noResultsTypes = ['hidden', 'numeric', 'boolean', 'arraySize']
 
-let getFacets = applyRestrictions => async (filters, collection, params) => {
+let getFacets = (restrictions, filters, collection) => {
   let facetFilters = _.omitBy(f => _.includes(f.type, noResultsTypes), filters)
   let result = {}
 
-  // parallelize this with Promise.all
   for (let filter of _.values(facetFilters)) {
-    result[filter.key] = await typeAggs(applyRestrictions)[filter.type](filter, filters, collection, params)
+    result[filter.key] = typeAggs(restrictions)[filter.type](filter, filters, collection)
   }
 
   return result
@@ -379,7 +376,7 @@ const getChart = type => ({
 // once we memoize `applyRestrictions` we can use it synchronously here too
 let getCharts = charts => _.zipObject(_.map('key', charts), _.map(chart =>getChart(chart.type)(chart), charts))
 
-let lookupStages = (applyRestrictions, params) => async lookups => {
+let lookupStages = (restrictions, lookups) => {
   let result = []
   for (let lookupName in lookups) {
     let {
@@ -391,13 +388,13 @@ let lookupStages = (applyRestrictions, params) => async lookups => {
       include,
       isArray,
     } = lookups[lookupName]
-    let lookupStages = _.compact([
+    let stages = _.compact([
       {
         $lookup: {
           from,
           let: { localVal: `$${localField}` },
           pipeline: [
-            ...(await applyRestrictions(from, params)),
+            ...restrictions[from],
             {
               $match: {
                 $expr: {
@@ -422,7 +419,7 @@ let lookupStages = (applyRestrictions, params) => async lookups => {
       },
     ])
 
-    result.push(lookupStages)
+    result.push(stages)
   }
 
   return result
@@ -478,11 +475,20 @@ module.exports = ({
       let schema = await app.service('schema').get(collection)
       let project = arrayToObject(_.identity, _.constant(1))(include || _.keys(schema.properties))
 
+      let collections = _.flow(_.compact, _.uniq)([
+        collection, 
+        ..._.map('lookup.from', charts),
+        ..._.map('lookup.from', filters)
+      ])
+
+      let restrictionAggs = await Promise.all(_.map(collectionName => applyRestrictions(collectionName, params), collections))
+      let restrictions = _.zipObject(collections, restrictionAggs)
+
       let fullQuery = getTypeFilterStages(filters)
 
       let aggs = {
         resultsFacet: [
-          ...(await applyRestrictions(collection, params)),
+          ...restrictions[collection],
           ...fullQuery,
           { $facet: {
             results: [
@@ -491,7 +497,7 @@ module.exports = ({
                 : []),
               { $skip: (page - 1) * pageSize },
               { $limit: pageSize },
-              ...(lookup ? _.flatten(await lookupStages(applyRestrictions, params)(lookup)) : []),
+              ...(lookup ? _.flatten(lookupStages(restrictions, lookup)) : []),
               { $project: project },
             ],
             resultsCount: [
@@ -500,10 +506,8 @@ module.exports = ({
             ...getCharts(charts)
           } }
         ],
-        ...(await getFacets(applyRestrictions)(filters, collection, params)),
+        ...getFacets(restrictions, filters, collection),
       }
-
-      console.log(JSON.stringify(aggs, 0, 2))
 
       let result = _.fromPairs(
         await Promise.all(
