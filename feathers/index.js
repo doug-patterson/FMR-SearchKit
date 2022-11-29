@@ -315,7 +315,7 @@ const dateProject2 = period => {
 }
 
 
-const getChart = type => ({
+const getChart = restrictions => type => ({
   dateIntervalBars: ({ x, y, group, period }) => [
     { $group: { _id: { [`${period}`]: { [`$${period}`]: `$${x}` }, group: `$${group}` }, value: { $sum: `$${y}` } } },
   ],
@@ -348,15 +348,22 @@ const getChart = type => ({
     ...(lookup ? [
       { $lookup: {
         from: lookup.from,
+        let: { localId: '$_id' },
+        pipeline: [
+          ...restrictions[lookup.from],
+          ...(lookup.unwind ? [{ $unwind: `$${lookup.unwind}` }]: []),
+          {
+            $match: {
+              $expr: { $eq: [`$${lookup.foreignField}`, '$$localId'] },
+            },
+          },
+        ],
         as: 'lookup',
-        localField: '_id',
-        foreignField: 'item_data.variations.id'
       } },
       { $unwind: '$lookup' },
       { $project: {
         _id: 1,
         count: 1,
-        originalLookup: '$lookup',
         ...arrayToObject(
           include => `lookup.${include}`,
           _.constant(1)
@@ -373,8 +380,7 @@ const getChart = type => ({
   ]
 }[type])
 
-// once we memoize `applyRestrictions` we can use it synchronously here too
-let getCharts = charts => _.zipObject(_.map('key', charts), _.map(chart =>getChart(chart.type)(chart), charts))
+let getCharts = (restrictions, charts) => _.zipObject(_.map('key', charts), _.map(chart =>getChart(restrictions)(chart.type)(chart), charts))
 
 let lookupStages = (restrictions, lookups) => {
   let result = []
@@ -503,7 +509,7 @@ module.exports = ({
             resultsCount: [
               { $group: { _id: null, count: { $sum: 1 } } },
             ],
-            ...getCharts(charts)
+            ...getCharts(restrictions, charts)
           } }
         ],
         ...getFacets(restrictions, filters, collection),
