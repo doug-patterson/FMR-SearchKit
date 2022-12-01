@@ -454,8 +454,8 @@ module.exports = ({
     _.map(service => [service, require(`${servicesPath}${service}/hooks`)]),
     _.fromPairs,
     _.mapValues(({ before, after }) => ({
-      before: [...(before.all || []), ...(before.find || [])],
-      after: [...(after.find || []), ...(after.all || [])]
+      before: [...(before?.all || []), ...(before?.find || [])],
+      after: [...(after?.find || []), ...(after?.all || [])]
     }))
   )(services)
 
