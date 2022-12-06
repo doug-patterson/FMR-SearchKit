@@ -67,12 +67,12 @@ let typeFilters = {
           },
         ]
       : [],
-  facet: ({ field, values, isMongoId, exclude }) =>
+  facet: ({ field, idPath, values, isMongoId, exclude }) =>
     _.size(values)
       ? [
           {
             $match: {
-              [field]: {
+              [`${field}${idPath ? '.' : ''}${idPath || ''}`]: {
                 [`${exclude ? '$nin' : '$in'}`]:
                   _.size(values) && isMongoId
                     ? _.map(ObjectId, values)
@@ -103,6 +103,12 @@ let typeFilters = {
           },
         ]
       : [],
+  hiddenExists: ({ field, negate }) =>
+    [
+      {
+        $match: { [field]: { $exists: !negate } },
+      },
+    ],
   arraySize: ({ field, from, to }) =>
     _.isNumber(from) || _.isNumber(to)
       ? [
@@ -193,8 +199,10 @@ let typeAggs = restrictions => ({
       },
     },
   ],
+  // both of these need to support an `idPath` property such that if it's present
+  // the filtering is by field.idPath and the rest of field is included on `value`
   facet: (
-    { key, field, values = [], isMongoId, lookup },
+    { key, field, idPath, include, values = [], isMongoId, lookup },
     filters,
     collection
   ) => [
@@ -204,8 +212,8 @@ let typeAggs = restrictions => ({
     // we're running these potentially heavy feathers hook pipelines repeatedly and serially
     ...restrictions[collection],
     ...getTypeFilterStages(_.reject({ key }, filters)),
-    { $unwind: { path: `$${field}`, preserveNullAndEmptyArrays: true } },
-    { $group: { _id: `$${field}`, count: { $sum: 1 } } },
+    { $unwind: { path: `$${field}${idPath ? '.' : ''}${idPath || ''}`, preserveNullAndEmptyArrays: true } },
+    { $group: { _id: `$${field}${idPath ? '.' : ''}${idPath || ''}`, count: { $sum: 1 }, value: { $first: `$${field}` } } },
     ...(lookup
       ? [
           {
@@ -246,6 +254,12 @@ let typeAggs = restrictions => ({
         _id: 1,
         count: 1,
         lookup: 1,
+        ...(include ? {
+          ...arrayToObject(
+            include => `value.${include}`,
+            _.constant(1)
+          )(include)
+        } : { value: 1 }),
         checked: {
           $in: [
             '$_id',
@@ -260,7 +274,7 @@ let typeAggs = restrictions => ({
   ],
 })
 
-let noResultsTypes = ['hidden', 'numeric', 'boolean', 'arraySize']
+let noResultsTypes = ['hidden', 'hiddenExists', 'numeric', 'boolean', 'arraySize']
 
 let getFacets = (restrictions, filters, collection) => {
   let facetFilters = _.omitBy(f => _.includes(f.type, noResultsTypes), filters)
@@ -340,9 +354,9 @@ const getChart = restrictions => type => ({
       value: '$value'
     } },
   ],
-  topNPie: ({ field, size = 10, unwind, lookup }) => [
-    ...[(unwind ? { $unwind: `$${unwind}` } : {})],
-    { $group: { _id: `$${field}`, count: { $sum: 1 } } },
+  topNPie: ({ field, idPath, size = 10, unwind, lookup, include }) => [
+    ...(unwind ? [{ $unwind: `$${unwind}` }] : []),
+    { $group: { _id: `$${field}${idPath ? '.' : ''}${idPath || ''}`, count: { $sum: 1 }, labelValue: { $first: `$${field}` } } },
     { $sort: { count: -1 } },
     { $limit: size },
     ...(lookup ? [
@@ -375,6 +389,12 @@ const getChart = restrictions => type => ({
       id: `$_id`,
       label: '$_id',
       lookup: 1,
+      ...(include ? {
+        ...arrayToObject(
+          include => `labelValue.${include}`,
+          _.constant(1)
+        )(include)
+      } : { labelValue: 1 }),
       value: `$count`
     } }
   ]
@@ -514,6 +534,8 @@ module.exports = ({
         ],
         ...getFacets(restrictions, filters, collection),
       }
+
+      console.log(JSON.stringify(aggs, 0, 2))
 
       let result = _.fromPairs(
         await Promise.all(
