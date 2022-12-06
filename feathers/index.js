@@ -535,8 +535,6 @@ module.exports = ({
         ...getFacets(restrictions, filters, collection),
       }
 
-      console.log(JSON.stringify(aggs, 0, 2))
-
       let result = _.fromPairs(
         await Promise.all(
           mapIndexed(async (agg, key) => {
