@@ -103,6 +103,14 @@ let typeFilters = {
           },
         ]
       : [],
+  fieldHasTruthyValue: ({ field, checked }) =>
+    checked
+      ? [
+          {
+            $match: { [field]: { $ne: null } },
+          },
+        ]
+      : [],
   hiddenExists: ({ field, negate }) =>
     [
       {
@@ -280,7 +288,7 @@ let typeAggs = restrictions => ({
   ],
 })
 
-let noResultsTypes = ['hidden', 'hiddenExists', 'numeric', 'boolean', 'arraySize']
+let noResultsTypes = ['hidden', 'hiddenExists', 'numeric', 'boolean', 'fieldHasTruthyValue', 'arraySize']
 
 let getFacets = (restrictions, filters, collection) => {
   let facetFilters = _.omitBy(f => _.includes(f.type, noResultsTypes), filters)
