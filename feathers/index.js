@@ -151,7 +151,7 @@ let typeAggs = restrictions => ({
     ...restrictions[collection],
     ...getTypeFilterStages(_.reject({ key }, filters)),
     { $unwind: { path: `$${field}` } },
-    { $group: { _id: `$${field}.${prop}${idPath ? '.' : ''}${idPath || ''}`, count: { $addToSet: '$_id' }, value: { $first: `$${field}.${prop}` } } },
+    { $group: { _id: `$${field}.${prop}${idPath ? '.' : ''}${idPath || ''}`, count: { $addToSet: '$_id' }, value: { $first: idPath ? `$${field}.${prop}`: `$${field}` } } },
     ...(lookup
       ? [
           {
