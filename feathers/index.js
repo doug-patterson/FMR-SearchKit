@@ -16,7 +16,7 @@ let makeContextForBeforeHooks = ({ app, params, collection }) => ({
 })
 
 let applyServiceRestrictions = ({ app, hooks }) => async (collection, params) => {
-  let beforeHooks = _.get(`${collection}.before`, hooks)
+  let beforeHooks = _.get(`${collection}.before`, hooks) || []
   let beforeContext = makeContextForBeforeHooks({ app, params, collection })
   
   for (let hook of beforeHooks) {
@@ -43,7 +43,7 @@ let getAfterHookExecutor = ({ app, hooks }) => ({ collection, field, params }) =
     record,
   })
 
-  let afterHooks = _.get(`${collection}.after`, hooks)
+  let afterHooks = _.get(`${collection}.after`, hooks) || []
 
   for (let hook of afterHooks) {
     afterContext = (await hook(afterContext)) || afterContext
@@ -52,12 +52,12 @@ let getAfterHookExecutor = ({ app, hooks }) => ({ collection, field, params }) =
 }
 
 let typeFilters = {
-  arrayElementPropFacet: ({ field, prop, values, isMongoId }) =>
+  arrayElementPropFacet: ({ field, prop, idPath, values, isMongoId }) =>
     _.size(values)
       ? [
           {
             $match: {
-              [`${field}.${prop}`]: {
+              [`${field}.${prop}${idPath ? '.' : ''}${idPath || ''}`]: {
                 $in:
                   _.size(values) && isMongoId
                     ? _.map(ObjectId, values)
@@ -135,7 +135,7 @@ let getTypeFilterStages = queryFilters =>
 
 let typeAggs = restrictions => ({
   arrayElementPropFacet: (
-    { key, field, prop, values = [], isMongoId, lookup },
+    { key, field, prop, values = [], isMongoId, lookup, idPath, include },
     filters,
     collection,
     size = 100
@@ -143,8 +143,7 @@ let typeAggs = restrictions => ({
     ...restrictions[collection],
     ...getTypeFilterStages(_.reject({ key }, filters)),
     { $unwind: { path: `$${field}` } },
-    { $group: { _id: `$${field}.${prop}`, count: { $addToSet: '$_id' } } },
-    { $limit: _.clamp(0, 10000, size) },
+    { $group: { _id: `$${field}.${prop}${idPath ? '.' : ''}${idPath || ''}`, count: { $addToSet: '$_id' }, value: { $first: `$${field}.${prop}` } } },
     ...(lookup
       ? [
           {
@@ -185,6 +184,12 @@ let typeAggs = restrictions => ({
         _id: 1,
         count: { $size: '$count' },
         lookup: 1,
+        ...(include ? {
+          ...arrayToObject(
+            include => `value.${include}`,
+            _.constant(1)
+          )(include)
+        } : { value: 1 }),
         checked: {
           $in: [
             '$_id',
@@ -198,6 +203,7 @@ let typeAggs = restrictions => ({
         count: -1,
       },
     },
+    { $limit: size },
   ],
   // both of these need to support an `idPath` property such that if it's present
   // the filtering is by field.idPath and the rest of field is included on `value`
@@ -333,8 +339,8 @@ const getChart = restrictions => type => ({
   dateIntervalBars: ({ x, y, group, period }) => [
     { $group: { _id: { [`${period}`]: { [`$${period}`]: `$${x}` }, group: `$${group}` }, value: { $sum: `$${y}` } } },
   ],
-  dateLineSingle: ({ x, y, period }) => [
-    { $group: { _id: dateGroup(x, period), value: { $sum: `$${y}` }, idx: { $min: `$${x}`} } },
+  dateLineSingle: ({ x, y, period, agg = 'sum' }) => [ // implements sum and count right now
+    { $group: { _id: dateGroup(x, period), value: { $sum: agg === 'sum' ? `$${y}` : 1 }, idx: { $min: `$${x}`} } },
     { $sort: { idx: 1 } },
     { $project: {
       _id: 0,
