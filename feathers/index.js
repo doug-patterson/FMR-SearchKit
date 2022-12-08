@@ -1,5 +1,18 @@
 let _ = require('lodash/fp')
 let { ObjectId } = require('mongodb')
+let {
+  startOfDay,
+  startOfWeek,
+  startOfMonth,
+  startOfQuarter,
+  startOfYear,
+  addMinutes,
+  addHours,
+  addDays,
+  addMonths,
+  addQuarters,
+  addYears
+} = require('date-fns')
 
 let mapIndexed = _.convert({ cap: false }).map
 let arrayToObject = _.curry((key, val, arr) =>
@@ -51,14 +64,43 @@ let getAfterHookExecutor = ({ app, hooks }) => ({ collection, field, params }) =
   return _.flow(_.castArray, _.first)(_.get('result', afterContext))
 }
 
+let intervals = {
+  'Today': startOfDay,
+  'Current Week': startOfWeek,
+  'Current Month': startOfMonth,
+  'Current Quarter': startOfQuarter,
+  'Current Year': startOfYear,
+  'Last Hour': date => addHours(date, -1),
+  'Last Two Hours': date => addHours(date, -2),
+  'Last Four Hours': date => addHours(date, -4),
+  'Last Eight Hours': date => addHours(date, -8),
+  'Last Day': date => addDays(date, -1),
+  'Last Two Days': date => addDays(date, -2),
+  'Last Three Days': date => addDays(date, -3),
+  'Last Week': date => addDays(date, -7),
+  'Last Month': date => addMonths(date, -1),
+  'Last Quarter': date => addQuarters(date, -1),
+  'Last Year': date => addYears(date, -1),
+  'Last Two Years': date => addYears(date, -1),
+  /*'Previous Full Day',
+  'Previous Full Week',
+  'Previous Full Month',
+  'Previous Full Quarter',
+  'Previous Full Year',*/
+}
+
+let tntervalEndpoints = interval => ({
+  from: intervals[interval](new Date())
+})
+
 let typeFilters = {
-  arrayElementPropFacet: ({ field, prop, idPath, values, isMongoId }) =>
+  arrayElementPropFacet: ({ field, prop, idPath, values, isMongoId, exclude }) =>
     _.size(values)
       ? [
           {
             $match: {
               [`${field}.${prop}${idPath ? '.' : ''}${idPath || ''}`]: {
-                $in:
+                [`${exclude ? '$nin' : '$in'}`]:
                   _.size(values) && isMongoId
                     ? _.map(ObjectId, values)
                     : values,
@@ -95,6 +137,32 @@ let typeFilters = {
           },
         ]
       : [],
+  dateTimeInterval: ({ field, from, to, interval, offset }) => {
+    if (interval) {
+      let endpoints = tntervalEndpoints(interval)
+      to = endpoints.to
+      from = endpoints.from
+    } else {
+      from = from && new Date(from)
+      to = to && new Date(to)
+      if (offset) {
+        let serverOffset = new Date().getTimezoneOffset()
+        let totalOffset = offset - serverOffset
+        from = from && addMinutes(from, totalOffset)
+        to = to && addMinutes(to, totalOffset)
+      }
+    }
+    return (from || to) ? [
+      {
+        $match: {
+          $and: _.compact([
+            from && { [field]: { $gte: from } },
+            to && { [field]: { $lte: to } },
+          ]),
+        },
+      }
+    ] : []
+  },
   boolean: ({ field, checked }) =>
     checked
       ? [
@@ -288,7 +356,7 @@ let typeAggs = restrictions => ({
   ],
 })
 
-let noResultsTypes = ['hidden', 'hiddenExists', 'numeric', 'boolean', 'fieldHasTruthyValue', 'arraySize']
+let noResultsTypes = ['hidden', 'hiddenExists', 'numeric', 'dateTimeInterval', 'boolean', 'fieldHasTruthyValue', 'arraySize']
 
 let getFacets = (restrictions, filters, collection) => {
   let facetFilters = _.omitBy(f => _.includes(f.type, noResultsTypes), filters)
