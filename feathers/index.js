@@ -89,7 +89,12 @@ let intervals = {
   'Previous Full Year',*/
 }
 
-let tntervalEndpoints = interval => ({
+let tntervalEndpoints = (interval, offset) => ({
+  // if we have an offset we need to calculate both ends as
+  // the stop point isn't "now". Refactor so the above
+  // fns return ({ to, from }) with possibly missing to
+  // and then in the full period version use the offset
+  // as expected
   from: intervals[interval](new Date())
 })
 
@@ -139,7 +144,7 @@ let typeFilters = {
       : [],
   dateTimeInterval: ({ field, from, to, interval, offset }) => {
     if (interval) {
-      let endpoints = tntervalEndpoints(interval)
+      let endpoints = tntervalEndpoints(interval, offset)
       to = endpoints.to
       from = endpoints.from
     } else {
@@ -369,19 +374,30 @@ let getFacets = (restrictions, filters, collection) => {
   return result
 }
 
-const fullDateGroup = field => ({
-  year: { $year: `$${field}` },
-  month: { $month: `$${field}` },
-  week: { $week: `$${field}` },
-  day: { $dayOfMonth: `$${field}` }
+const fullDateGroup = (field, timezone) => ({
+  year: { $year: { date: `$${field}`, timezone } },
+  month: { $month: { date: `$${field}`, timezone } },
+  week: { $week: { date: `$${field}`, timezone } },
+  day: { $dayOfMonth: { date: `$${field}`, timezone } }
 })
+
+const timezoneOffset = num => {
+  let sign = num < 0 ? '+' : '-' // reverse the offset received from the browser
+  let abs = Math.abs(num)
+  let hours = Math.floor(abs/60)
+  let minutes = abs % 60
+  let hoursString = `00${hours}`.substr(-2)
+  let minutesString = `00${minutes}`.substr(-2)
+
+  return `${sign}${hoursString}${minutesString}`
+}
 
 const periods = ['day', 'month', 'year']
 
-const dateGroup = (field, period) => {
+const dateGroup = (field, period, offset) => {
   let dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
 
-  return _.pick(dateGroupPick, fullDateGroup(field))
+  return _.pick(dateGroupPick, fullDateGroup(field, timezoneOffset(offset)))
 }
 
 const dateProject = period => {
@@ -410,13 +426,12 @@ const dateProject2 = period => {
   return { $concat: arr }
 }
 
-
 const getChart = restrictions => type => ({
   dateIntervalBars: ({ x, y, group, period }) => [
     { $group: { _id: { [`${period}`]: { [`$${period}`]: `$${x}` }, group: `$${group}` }, value: { $sum: `$${y}` } } },
   ],
-  dateLineSingle: ({ x, y, period, agg = 'sum' }) => [ // implements sum and count right now
-    { $group: { _id: dateGroup(x, period), value: { $sum: agg === 'sum' ? `$${y}` : 1 }, idx: { $min: `$${x}`} } },
+  dateLineSingle: ({ x, y, period, agg = 'sum', offset = 0 }) => [ // implements sum and count right now
+    { $group: { _id: dateGroup(x, period, offset), value: { $sum: agg === 'sum' ? `$${y}` : 1 }, idx: { $min: `$${x}`} } },
     { $sort: { idx: 1 } },
     { $project: {
       _id: 0,
@@ -427,8 +442,8 @@ const getChart = restrictions => type => ({
     { $project: { _id: 0, id: 'results', data: 1 } }
   ],
   // combine this with previous
-  quantityByPeriodCalendar: ({ x, y }) => [
-    { $group: { _id: dateGroup(x, 'day'), value: { $sum: `$${y}` }, idx: { $min: `$${x}`} } },
+  quantityByPeriodCalendar: ({ x, y, offset = 0 }) => [
+    { $group: { _id: dateGroup(x, 'day', offset), value: { $sum: `$${y}` }, idx: { $min: `$${x}`} } },
     { $sort: { idx: 1 } },
     { $project: {
       _id: 0,
@@ -479,10 +494,78 @@ const getChart = restrictions => type => ({
       } : { labelValue: 1 }),
       value: `$count`
     } }
+  ],
+  dayOfWeekSummaryBars: ({ x, y, group, idPath, agg, offset = 0 }) => [
+    { $group: {
+      _id: { day: { $dayOfWeek: { date: `$${x}`, timezone: timezoneOffset(offset) } }, [`${group || 'results'}`]: group ? `$${group}${idPath ? '.' : ''}${idPath || ''}` : 'results' },
+      value: { $sum: agg === 'sum' ? `$${y}` : `$${y}` }
+    } },
+    { $group: {
+      _id: `$_id.day`,
+      segments: { $push: { k: `$_id.${group || 'results'}`, v: `$value` } },
+    } },
+    { $set: {
+      segments: { $arrayToObject: '$segments'}
+    }},
+    { $set: {
+      'segments.id': '$_id'
+    }},
+    { $replaceRoot: { newRoot: '$segments' } }
+  ],
+  hourOfDaySummaryLine: ({ x, y, group, idPath, agg, offset = 0 }) => [
+    { $group: {
+      _id: { hour: { $hour: { date: `$${x}`, timezone: timezoneOffset(offset) } }, [`${group || 'results'}`]: group ? `$${group}${idPath ? '.' : ''}${idPath || ''}` : 'results' },
+      value: { $sum: agg === 'sum' ? `$${y}` : `$${y}` }
+    } },
+    { $group: {
+      _id: `$_id.${group || 'results'}`,
+      data: { $push: {
+        x: '$_id.hour',
+        y: '$value'
+      } },
+    } },
+    { $project: {
+      _id: 0,
+      id: '$_id',
+      data: 1
+    } }
+  ],
+  summaryTable: ({ rows, isCurrency }) => [
+    { $group: {
+      _id: null,
+      ..._.flow(
+        _.map(({ key, field, agg }) => [key, { [`$${agg}`]: `$${field}` }]),
+        _.fromPairs,
+      )(rows),
+    } },
+    { $project: { _id: 0 } }
+  ],
+  fieldStats: ({ field, idPath, statsField, include, page, pageSize, sort, sortDir }) => [
+    {
+      $group: {
+        _id: `$${field}${idPath ? '.' : ''}${idPath || ''}`,
+        ..._.flow(
+          _.map(stat => [stat, { [`$${stat}`]: `$${statsField}`}]),
+          _.fromPairs
+        )(include)
+      }
+    },
+    { $sort: { [sort || _.first(include)]: sortDir === 'asc' ? 1 : -1 } },
+    { $skip: page * pageSize },
+    { $limit: pageSize }
+  ],
+  groupedTotals: ({ group, include}) => [
+    { $group: {
+      _id: group ? `$${group}` : null,
+      ..._.flow(
+        _.map(({ key, field, agg }) => [key || field, { [`$${agg}`]: `$${field}` }]),
+        _.fromPairs
+      )(include)
+    } }
   ]
 }[type])
 
-let getCharts = (restrictions, charts) => _.zipObject(_.map('key', charts), _.map(chart =>getChart(restrictions)(chart.type)(chart), charts))
+let getCharts = (restrictions, charts) => _.zipObject(_.map('key', charts), _.map(chart => getChart(restrictions)(chart.type)(chart), charts))
 
 let lookupStages = (restrictions, lookups) => {
   let result = []
