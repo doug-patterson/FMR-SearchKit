@@ -495,14 +495,14 @@ const getChart = restrictions => type => ({
       value: `$count`
     } }
   ],
-  dayOfWeekSummaryBars: ({ x, y, group, idPath, agg, offset = 0 }) => [
+  dayOfWeekSummaryBars: ({ x, y, group, idPath, agg, offset = 0, isCurrency }) => [
     { $group: {
       _id: { day: { $dayOfWeek: { date: `$${x}`, timezone: timezoneOffset(offset) } }, [`${group || 'results'}`]: group ? `$${group}${idPath ? '.' : ''}${idPath || ''}` : 'results' },
       value: { $sum: agg === 'sum' ? `$${y}` : `$${y}` }
     } },
     { $group: {
       _id: `$_id.day`,
-      segments: { $push: { k: `$_id.${group || 'results'}`, v: `$value` } },
+      segments: { $push: { k: `$_id.${group || 'results'}`, v: isCurrency ? { $divide: [`$value`, 100] } : `$value` } },
     } },
     { $set: {
       segments: { $arrayToObject: '$segments'}
@@ -510,7 +510,11 @@ const getChart = restrictions => type => ({
     { $set: {
       'segments.id': '$_id'
     }},
-    { $replaceRoot: { newRoot: '$segments' } }
+    { $replaceRoot: { newRoot: '$segments' } },
+    { $sort: { id: 1 } },
+    { $set: {
+      id: { $arrayElemAt: [[null, 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], `$id`] }
+    } }
   ],
   hourOfDaySummaryLine: ({ x, y, group, idPath, agg, offset = 0 }) => [
     { $group: {
@@ -530,7 +534,7 @@ const getChart = restrictions => type => ({
       data: 1
     } }
   ],
-  summaryTable: ({ rows, isCurrency }) => [
+  summaryTable: ({ rows }) => [
     { $group: {
       _id: null,
       ..._.flow(
