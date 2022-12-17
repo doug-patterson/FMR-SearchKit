@@ -142,7 +142,7 @@ let typeFilters = {
           },
         ]
       : [],
-  dateTimeInterval: ({ field, from, to, interval, offset }) => {
+  dateTimeInterval: ({ field, from, fromRelative, to, toRelative, interval, offset }) => {
     if (interval) {
       let endpoints = tntervalEndpoints(interval, offset)
       to = endpoints.to
@@ -150,6 +150,13 @@ let typeFilters = {
     } else {
       from = from && new Date(from)
       to = to && new Date(to)
+      fromRelative = fromRelative && !from && addHours(new Date(), fromRelative)
+      toRelative = toRelative && !to && addHours(new Date(), toRelative)
+      from = from || fromRelative
+      to = to || toRelative
+      // some server rendering scenarios won't allow setting to/from
+      // with actual dates so one can also set them by passing an integer
+      // offset here to produce `until 5 hours ago` etc
       if (offset) {
         let serverOffset = new Date().getTimezoneOffset()
         let totalOffset = offset - serverOffset
@@ -430,25 +437,25 @@ const getChart = restrictions => type => ({
   dateIntervalBars: ({ x, y, group, period }) => [
     { $group: { _id: { [`${period}`]: { [`$${period}`]: `$${x}` }, group: `$${group}` }, value: { $sum: `$${y}` } } },
   ],
-  dateLineSingle: ({ x, y, period, agg = 'sum', offset = 0 }) => [ // implements sum and count right now
+  dateLineSingle: ({ x, y, period, agg = 'sum', offset = 0, isCurrency }) => [
     { $group: { _id: dateGroup(x, period, offset), value: { $sum: agg === 'sum' ? `$${y}` : 1 }, idx: { $min: `$${x}`} } },
     { $sort: { idx: 1 } },
     { $project: {
       _id: 0,
       x: dateProject(period),
-      y: '$value'
+      y: isCurrency ? { $divide: [`$value`, 100] } : `$value`
     } },
     { $group: { _id: null, data: { $push: '$$ROOT' } } },
     { $project: { _id: 0, id: 'results', data: 1 } }
   ],
   // combine this with previous
-  quantityByPeriodCalendar: ({ x, y, offset = 0 }) => [
+  quantityByPeriodCalendar: ({ x, y, offset = 0, isCurrency }) => [
     { $group: { _id: dateGroup(x, 'day', offset), value: { $sum: `$${y}` }, idx: { $min: `$${x}`} } },
     { $sort: { idx: 1 } },
     { $project: {
       _id: 0,
       day: dateProject2('day'),
-      value: '$value'
+      value: isCurrency ? { $divide: [`$value`, 100] } : `$value`
     } },
   ],
   topNPie: ({ field, idPath, size = 10, unwind, lookup, include }) => [
@@ -516,7 +523,7 @@ const getChart = restrictions => type => ({
       id: { $arrayElemAt: [[null, 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], `$id`] }
     } }
   ],
-  hourOfDaySummaryLine: ({ x, y, group, idPath, agg, offset = 0 }) => [
+  hourOfDaySummaryLine: ({ x, y, group, idPath, agg, offset = 0, isCurrency }) => [
     { $group: {
       _id: { hour: { $hour: { date: `$${x}`, timezone: timezoneOffset(offset) } }, [`${group || 'results'}`]: group ? `$${group}${idPath ? '.' : ''}${idPath || ''}` : 'results' },
       value: { $sum: agg === 'sum' ? `$${y}` : `$${y}` }
@@ -525,7 +532,7 @@ const getChart = restrictions => type => ({
       _id: `$_id.${group || 'results'}`,
       data: { $push: {
         x: '$_id.hour',
-        y: '$value'
+        y: isCurrency ? { $divide: [`$value`, 100] } : `$value`
       } },
     } },
     { $project: {
@@ -756,3 +763,4 @@ module.exports = ({
     },
   })
 }
+
