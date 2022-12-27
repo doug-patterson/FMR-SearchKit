@@ -551,18 +551,29 @@ const getChart = restrictions => type => ({
     } },
     { $project: { _id: 0 } }
   ],
-  fieldStats: ({ field, idPath, statsField, include, page, pageSize, sort, sortDir }) => [
+  fieldStats: ({ unwind, field, idPath, statsField, include, page = 1, pageSize, sort, sortDir }) => [
+    ...(unwind ? [{ $unwind: { path: `$${unwind}`, preserveNullAndEmptyArrays: true  } }] : []),
     {
       $group: {
         _id: `$${field}${idPath ? '.' : ''}${idPath || ''}`,
+        value: { $first: `$${field}` }, // need to use `valueInclude`
+        count: { $sum: 1 },
         ..._.flow(
           _.map(stat => [stat, { [`$${stat}`]: `$${statsField}`}]),
           _.fromPairs
-        )(include)
+        )(_.without(['count'], include))
       }
     },
+    { $group: {
+      _id: null,
+      records: { $push: '$$ROOT' },
+      resultsCount: { $sum: 1}
+    } },
+    { $unwind: '$records' },
+    { $set: { 'records.resultsCount': '$resultsCount' } },
+    { $replaceRoot: { newRoot: '$records' } },
     { $sort: { [sort || _.first(include)]: sortDir === 'asc' ? 1 : -1 } },
-    { $skip: page * pageSize },
+    { $skip: (page - 1) * pageSize },
     { $limit: pageSize }
   ],
   groupedTotals: ({ group, include}) => [
@@ -693,15 +704,15 @@ module.exports = ({
           ...restrictions[collection],
           ...fullQuery,
           { $facet: {
-            results: [
+            ...(pageSize !== 0 ? { results: [
               ...(sortField
                 ? [{ $sort: { [sortField]: sortDir === 'asc' ? 1 : -1 } }]
                 : []),
-              { $skip: (page - 1) * pageSize },
-              { $limit: pageSize },
+              { $skip: (page - 1) * (pageSize || 100) },
+              { $limit: pageSize || 100 },
               ...(lookup ? _.flatten(lookupStages(restrictions, lookup)) : []),
               { $project: project },
-            ],
+            ] } : {}),
             resultsCount: [
               { $group: { _id: null, count: { $sum: 1 } } },
             ],
@@ -763,4 +774,3 @@ module.exports = ({
     },
   })
 }
-
