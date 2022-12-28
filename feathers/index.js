@@ -36,7 +36,11 @@ let applyServiceRestrictions = ({ app, hooks }) => async (collection, params) =>
     beforeContext = (await hook(beforeContext)) || beforeContext
   }
 
-  return [{ $match: beforeContext.params.query }]
+  let beforeHookQueryProps = _.keys(beforeContext.params.query)
+  let props = _.reject(prop => _.includes(prop, ['$skip', '$limit']), beforeHookQueryProps)
+  let beforeHookQuery = _.pick(props, beforeContext.params.query)
+
+  return [{ $match: beforeHookQuery }]
 }
 
 let makeContextForAfterHooks = ({ app, params, field, record }) => ({
