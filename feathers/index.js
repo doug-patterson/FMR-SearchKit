@@ -545,15 +545,27 @@ const getChart = restrictions => type => ({
       data: 1
     } }
   ],
-  summaryTable: ({ rows }) => [
+  summaryTable: ({ rows, group, sortField, nameField }) => [
+    ..._.flow(
+      _.filter('unwind'),
+      _.map(({ key, field }) => ({
+        $set: { [key]: { $reduce: {
+          input: `$${field}`,
+          initialValue: 0,
+          in: { $sum: [ '$$value', '$$this' ] }
+        } } }
+      }))
+    )(rows),
     { $group: {
-      _id: null,
+      _id: group ? `$${group}` : null,
+      name: { $first: `$${nameField}` },
       ..._.flow(
-        _.map(({ key, field, agg }) => [key, { [`$${agg}`]: `$${field}` }]),
+        _.filter('agg'),
+        _.map(({ key, field, agg, unwind }) => [key, { [`$${agg}`]: `$${unwind ? key : field}` }]),
         _.fromPairs,
       )(rows),
     } },
-    { $project: { _id: 0 } }
+    ...(sortField ? [{ $sort: { [`${sortField}`]: -1 } }] : [])
   ],
   fieldStats: ({ unwind, field, idPath, statsField, include, page = 1, pageSize, sort, sortDir }) => [
     ...(unwind ? [{ $unwind: { path: `$${unwind}`, preserveNullAndEmptyArrays: true  } }] : []),
