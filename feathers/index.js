@@ -9,6 +9,7 @@ let {
   addMinutes,
   addHours,
   addDays,
+  addWeeks,
   addMonths,
   addQuarters,
   addYears
