@@ -152,10 +152,8 @@ let typeFilters = {
       from = from && new Date(from)
       to = to && new Date(to)
       if (offset) {
-        let serverOffset = new Date().getTimezoneOffset()
-        let totalOffset = offset - serverOffset
-        from = from && addMinutes(from, totalOffset)
-        to = to && addMinutes(to, totalOffset)
+        from = from && addMinutes(from, offset)
+        to = to && addMinutes(to, offset)
       }
     }
     return (from || to) ? [
@@ -163,7 +161,7 @@ let typeFilters = {
         $match: {
           $and: _.compact([
             from && { [field]: { $gte: from } },
-            to && { [field]: { $lte: to } },
+            to && { [field]: { $lt: to } },
           ]),
         },
       }
