@@ -95,7 +95,7 @@ let intervals = {
   'Previous Full Year': date => ({ from: addYears(startOfYear(date), -1), to: startOfYear(date) }),
 }
 
-let tntervalEndpoints = (interval, offset) => console.log({ interval, offset }) ||
+let tntervalEndpoints = (interval, offset) =>
   _.mapValues(date => addMinutes(date, offset), intervals[interval](new Date()))
 
 let typeFilters = {
@@ -144,7 +144,7 @@ let typeFilters = {
       : [],
   dateTimeInterval: ({ field, from, to, interval, offset }) => {
     if (interval) {
-      let endpoints = console.log(tntervalEndpoints(interval, offset)) || tntervalEndpoints(interval, offset)
+      let endpoints = tntervalEndpoints(interval, offset)
       to = endpoints.to
       from = endpoints.from
     } else {
