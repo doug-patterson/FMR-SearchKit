@@ -69,38 +69,34 @@ let getAfterHookExecutor = ({ app, hooks }) => ({ collection, field, params }) =
 }
 
 let intervals = {
-  'Today': startOfDay,
-  'Current Week': startOfWeek,
-  'Current Month': startOfMonth,
-  'Current Quarter': startOfQuarter,
-  'Current Year': startOfYear,
-  'Last Hour': date => addHours(date, -1),
-  'Last Two Hours': date => addHours(date, -2),
-  'Last Four Hours': date => addHours(date, -4),
-  'Last Eight Hours': date => addHours(date, -8),
-  'Last Day': date => addDays(date, -1),
-  'Last Two Days': date => addDays(date, -2),
-  'Last Three Days': date => addDays(date, -3),
-  'Last Week': date => addDays(date, -7),
-  'Last Month': date => addMonths(date, -1),
-  'Last Quarter': date => addQuarters(date, -1),
-  'Last Year': date => addYears(date, -1),
-  'Last Two Years': date => addYears(date, -1),
-  /*'Previous Full Day',
-  'Previous Full Week',
-  'Previous Full Month',
-  'Previous Full Quarter',
-  'Previous Full Year',*/
+  'Today': date => ({ from: startOfDay(date) }),
+  'Current Week': date => ({ from: startOfWeek(date) }),
+  'Current Month': date => ({ from: startOfMonth(date) }),
+  'Current Quarter': date => ({ from: startOfQuarter(date) }),
+  'Current Year': date => ({ from: startOfYear(date) }),
+  'Last Hour': date => ({ from: addHours(date, -1) }),
+  'Last Two Hours': date => ({ from: addHours(date, -2) }),
+  'Last Four Hours': date => ({ from: addHours(date, -4) }),
+  'Last Eight Hours': date => ({ from: addHours(date, -8) }),
+  'Last Twelve Hours': date => ({ from: addHours(date, -12) }),
+  'Last Day': date => ({ from: addDays(date, -1) }),
+  'Last Two Days': date => ({ from: addDays(date, -2) }),
+  'Last Three Days': date => ({ from: addDays(date, -3) }),
+  'Last Week': date => ({ from: addDays(date, -7) }),
+  'Last Two Weeks': date => ({ from: addDays(date, -14) }),
+  'Last Month': date => ({ from: addMonths(date, -1) }),
+  'Last Quarter': date => ({ from: addQuarters(date, -1) }),
+  'Last Year': date => ({ from: addYears(date, -1) }),
+  'Last Two Years': date => ({ from: addYears(date, -1) }),
+  'Previous Full Day': date => ({ from: addDays(startOfDay(date), -1), to: startOfDay(date) }),
+  'Previous Full Week': date => ({ from: addWeeks(startOfWeek(date), -1), to: startOfWeek(date) }),
+  'Previous Full Month': date => ({ from: addMonths(startOfMonth(date), -1), to: startOfMonth(date) }),
+  'Previous Full Quarter': date => ({ from: addQuarters(startOfQuarter(date), -1), to: startOfQuarter(date) }),
+  'Previous Full Year': date => ({ from: addYears(startOfYear(date), -1), to: startOfYear(date) }),
 }
 
-let tntervalEndpoints = (interval, offset) => ({
-  // if we have an offset we need to calculate both ends as
-  // the stop point isn't "now". Refactor so the above
-  // fns return ({ to, from }) with possibly missing to
-  // and then in the full period version use the offset
-  // as expected
-  from: intervals[interval](new Date())
-})
+let tntervalEndpoints = (interval, offset) => console.log({ interval, offset }) ||
+  _.mapValues(date => addMinutes(date, offset), intervals[interval](new Date()))
 
 let typeFilters = {
   arrayElementPropFacet: ({ field, prop, idPath, values, isMongoId, exclude }) =>
@@ -146,21 +142,14 @@ let typeFilters = {
           },
         ]
       : [],
-  dateTimeInterval: ({ field, from, fromRelative, to, toRelative, interval, offset }) => {
+  dateTimeInterval: ({ field, from, to, interval, offset }) => {
     if (interval) {
-      let endpoints = tntervalEndpoints(interval, offset)
+      let endpoints = console.log(tntervalEndpoints(interval, offset)) || tntervalEndpoints(interval, offset)
       to = endpoints.to
       from = endpoints.from
     } else {
       from = from && new Date(from)
       to = to && new Date(to)
-      fromRelative = fromRelative && !from && addHours(new Date(), fromRelative)
-      toRelative = toRelative && !to && addHours(new Date(), toRelative)
-      from = from || fromRelative
-      to = to || toRelative
-      // some server rendering scenarios won't allow setting to/from
-      // with actual dates so one can also set them by passing an integer
-      // offset here to produce `until 5 hours ago` etc
       if (offset) {
         let serverOffset = new Date().getTimezoneOffset()
         let totalOffset = offset - serverOffset
