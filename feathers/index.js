@@ -69,12 +69,16 @@ let getAfterHookExecutor = ({ app, hooks }) => ({ collection, field, params }) =
   return _.flow(_.castArray, _.first)(_.get('result', afterContext))
 }
 
+let applyOffset = offset => _.mapValues(endpoint => addMinutes(endpoint, offset))
+
 let intervals = {
-  'Today': date => ({ from: startOfDay(date) }),
-  'Current Week': date => ({ from: startOfWeek(date) }),
-  'Current Month': date => ({ from: startOfMonth(date) }),
-  'Current Quarter': date => ({ from: startOfQuarter(date) }),
-  'Current Year': date => ({ from: startOfYear(date) }),
+  'Today': (date, offset) => applyOffset(offset)({ from: startOfDay(date) }),
+  'Current Week': (date, offset) => applyOffset(offset)({ from: startOfWeek(date) }),
+  'Current Month': (date, offset) => applyOffset(offset)({ from: startOfMonth(date) }),
+  'Current Quarter': (date, offset) => applyOffset(offset)({ from: startOfQuarter(date) }),
+  'Current Year': (date, offset) => applyOffset(offset)({ from: startOfYear(date) }),
+
+  // no offest for these
   'Last Hour': date => ({ from: addHours(date, -1) }),
   'Last Two Hours': date => ({ from: addHours(date, -2) }),
   'Last Four Hours': date => ({ from: addHours(date, -4) }),
@@ -89,15 +93,15 @@ let intervals = {
   'Last Quarter': date => ({ from: addQuarters(date, -1) }),
   'Last Year': date => ({ from: addYears(date, -1) }),
   'Last Two Years': date => ({ from: addYears(date, -1) }),
-  'Previous Full Day': date => ({ from: addDays(startOfDay(date), -1), to: startOfDay(date) }),
-  'Previous Full Week': date => ({ from: addWeeks(startOfWeek(date), -1), to: startOfWeek(date) }),
-  'Previous Full Month': date => ({ from: addMonths(startOfMonth(date), -1), to: startOfMonth(date) }),
-  'Previous Full Quarter': date => ({ from: addQuarters(startOfQuarter(date), -1), to: startOfQuarter(date) }),
-  'Previous Full Year': date => ({ from: addYears(startOfYear(date), -1), to: startOfYear(date) }),
+
+  'Previous Full Day': (date, offset) => applyOffset(offset)({ from: addDays(startOfDay(date), -1), to: startOfDay(date) }),
+  'Previous Full Week': (date, offset) => applyOffset(offset)({ from: addWeeks(startOfWeek(date), -1), to: startOfWeek(date) }),
+  'Previous Full Month': (date, offset) => applyOffset(offset)({ from: addMonths(startOfMonth(date), -1), to: startOfMonth(date) }),
+  'Previous Full Quarter': (date, offset) => applyOffset(offset)({ from: addQuarters(startOfQuarter(date), -1), to: startOfQuarter(date) }),
+  'Previous Full Year': (date, offset) => applyOffset(offset)({ from: addYears(startOfYear(date), -1), to: startOfYear(date) }),
 }
 
-let tntervalEndpoints = (interval, offset) =>
-  _.mapValues(date => addMinutes(date, offset), intervals[interval](new Date()))
+let tntervalEndpoints = (interval, offset) => intervals[interval](new Date(), offset)
 
 let typeFilters = {
   arrayElementPropFacet: ({ field, prop, idPath, values, isMongoId, exclude }) =>
