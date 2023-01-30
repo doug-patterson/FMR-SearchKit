@@ -69,7 +69,7 @@ let getAfterHookExecutor = ({ app, hooks }) => ({ collection, field, params }) =
   return _.flow(_.castArray, _.first)(_.get('result', afterContext))
 }
 
-let applyOffset = (endpoint, offset) => addMinutes(endpoint, offset)
+let applyOffset = (endpoint, offset) => addMinutes(endpoint, 0 - offset)
 
 let intervals = {
   'Today': (date, offset) => ({ from: startOfDay(applyOffset(date, offset)) }),
@@ -150,6 +150,7 @@ let typeFilters = {
   dateTimeInterval: ({ field, from, to, interval, offset }) => {
     if (interval) {
       let endpoints = tntervalEndpoints(interval, offset)
+      console.log(JSON.stringify({ endpoints }))
       to = endpoints.to
       from = endpoints.from
     } else {
