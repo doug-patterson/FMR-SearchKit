@@ -150,16 +150,6 @@ let typeFilters = {
   dateTimeInterval: ({ field, from, to, interval, offset }) => {
     if (interval) {
       let endpoints = intervalEndpoints(interval, offset)
-      const sample = new Date()
-      console.log({
-        ...endpoints,
-        date: sample,
-        offsetDate: applyOffset(sample, offset),
-        startOfDay: startOfDay(sample),
-        offsetStartOfDay: applyOffset(startOfDay(sample), offset),
-        startOfOffsetDay: startOfDay(applyOffset(sample, offset)),
-        offsetStartOfOffsetDay: applyOffset(startOfDay(applyOffset(sample, offset)), offset)
-      })
       to = endpoints.to
       from = endpoints.from
     } else {
