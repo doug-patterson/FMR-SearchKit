@@ -69,7 +69,7 @@ let getAfterHookExecutor = ({ app, hooks }) => ({ collection, field, params }) =
   return _.flow(_.castArray, _.first)(_.get('result', afterContext))
 }
 
-let applyOffset = (endpoint, offset) => addMinutes(endpoint, 0 - offset)
+let applyOffset = (endpoint, offset) => addMinutes(endpoint, offset)
 
 let intervals = {
   'Today': (date, offset) => ({ from: startOfDay(applyOffset(date, offset)) }),
