@@ -101,7 +101,7 @@ let intervals = {
   'Previous Full Year': (date, offset) => ({ from: addYears(startOfYear(applyOffset(date, offset)), -1), to: startOfYear(applyOffset(date, offset)) }),
 }
 
-let tntervalEndpoints = (interval, offset) => intervals[interval](new Date(), offset)
+let intervalEndpoints = (interval, offset) => intervals[interval](new Date(), offset)
 
 let typeFilters = {
   arrayElementPropFacet: ({ field, prop, idPath, values, isMongoId, exclude }) =>
@@ -149,8 +149,9 @@ let typeFilters = {
       : [],
   dateTimeInterval: ({ field, from, to, interval, offset }) => {
     if (interval) {
-      let endpoints = tntervalEndpoints(interval, offset)
-      console.log(JSON.stringify({ interval, offset, endpoints }))
+      let endpoints = intervalEndpoints(interval, offset)
+      const sampleDate = new Date()
+      console.log(JSON.stringify({ interval, offset, endpoints, date: sampleDate, offsetDate: applyOffset(sampleDate, offset), startOfDay: startOfDay(sampleDate), offsetStartOfDay: startOfDay(applyOffset(sampleDate, offset)) }))
       to = endpoints.to
       from = endpoints.from
     } else {
