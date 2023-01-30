@@ -72,11 +72,11 @@ let getAfterHookExecutor = ({ app, hooks }) => ({ collection, field, params }) =
 let applyOffset = (endpoint, offset) => addMinutes(endpoint, 0 - offset)
 
 let intervals = {
-  'Today': (date, offset) => ({ from: startOfDay(applyOffset(date, offset)) }),
-  'Current Week': (date, offset) => ({ from: startOfWeek(applyOffset(date, offset)) }),
-  'Current Month': (date, offset) => ({ from: startOfMonth(applyOffset(date, offset)) }),
-  'Current Quarter': (date, offset) => ({ from: startOfQuarter(applyOffset(date, offset)) }),
-  'Current Year': (date, offset) => ({ from: startOfYear(applyOffset(date, offset)) }),
+  'Today': (date, offset) => applyOffset(({ from: startOfDay(applyOffset(date, offset)) })),
+  'Current Week': (date, offset) => applyOffset(({ from: startOfWeek(applyOffset(date, offset)) })),
+  'Current Month': (date, offset) => applyOffset(({ from: startOfMonth(applyOffset(date, offset)) })),
+  'Current Quarter': (date, offset) => applyOffset(({ from: startOfQuarter(applyOffset(date, offset)) })),
+  'Current Year': (date, offset) => applyOffset(({ from: startOfYear(applyOffset(date, offset)) })),
 
   // no offest for these
   'Last Hour': date => ({ from: addHours(date, -1) }),
@@ -94,11 +94,11 @@ let intervals = {
   'Last Year': date => ({ from: addYears(date, -1) }),
   'Last Two Years': date => ({ from: addYears(date, -1) }),
 
-  'Previous Full Day': (date, offset) => ({ from: addDays(startOfDay(applyOffset(date, offset)), -1), to: startOfDay(applyOffset(date, offset)) }),
-  'Previous Full Week': (date, offset) => ({ from: addWeeks(startOfWeek(applyOffset(date, offset)), -1), to: startOfWeek(applyOffset(date, offset)) }),
-  'Previous Full Month': (date, offset) => ({ from: addMonths(startOfMonth(applyOffset(date, offset)), -1), to: startOfMonth(applyOffset(date, offset)) }),
-  'Previous Full Quarter': (date, offset) => ({ from: addQuarters(startOfQuarter(applyOffset(date, offset)), -1), to: startOfQuarter(applyOffset(date, offset)) }),
-  'Previous Full Year': (date, offset) => ({ from: addYears(startOfYear(applyOffset(date, offset)), -1), to: startOfYear(applyOffset(date, offset)) }),
+  'Previous Full Day': (date, offset) => applyOffset(({ from: addDays(startOfDay(applyOffset(date, offset)), -1), to: startOfDay(applyOffset(date, offset)) })),
+  'Previous Full Week': (date, offset) => applyOffset(({ from: addWeeks(startOfWeek(applyOffset(date, offset)), -1), to: startOfWeek(applyOffset(date, offset)) })),
+  'Previous Full Month': (date, offset) => applyOffset(({ from: addMonths(startOfMonth(applyOffset(date, offset)), -1), to: startOfMonth(applyOffset(date, offset)) })),
+  'Previous Full Quarter': (date, offset) => applyOffset(({ from: addQuarters(startOfQuarter(applyOffset(date, offset)), -1), to: startOfQuarter(applyOffset(date, offset)) })),
+  'Previous Full Year': (date, offset) => applyOffset(({ from: addYears(startOfYear(applyOffset(date, offset)), -1), to: startOfYear(applyOffset(date, offset)) })),
 }
 
 let intervalEndpoints = (interval, offset) => intervals[interval](new Date(), offset)
