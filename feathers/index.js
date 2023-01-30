@@ -150,7 +150,7 @@ let typeFilters = {
   dateTimeInterval: ({ field, from, to, interval, offset }) => {
     if (interval) {
       let endpoints = tntervalEndpoints(interval, offset)
-      console.log(JSON.stringify({ endpoints }))
+      console.log(JSON.stringify({ interval, offset, endpoints }))
       to = endpoints.to
       from = endpoints.from
     } else {
