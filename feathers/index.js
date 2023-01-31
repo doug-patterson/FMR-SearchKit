@@ -429,6 +429,19 @@ const dateProject2 = period => {
   return { $concat: arr }
 }
 
+const dateProjectMultiple = period => {
+  let dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
+
+  let [first, ...rest] = _.map(field => `$_id.date.${field}`, dateGroupPick)
+  let arr = [{ $toString: first }]
+  
+  while (field = rest.shift()) {
+    arr.push('/', { $toString: field })
+  }
+
+  return { $concat: arr }
+}
+
 const getChart = restrictions => type => ({
   dateIntervalBars: ({ x, y, group, period }) => [
     { $group: { _id: { [`${period}`]: { [`$${period}`]: `$${x}` }, group: `$${group}` }, value: { $sum: `$${y}` } } },
@@ -444,7 +457,22 @@ const getChart = restrictions => type => ({
     { $group: { _id: null, data: { $push: '$$ROOT' } } },
     { $project: { _id: 0, id: 'results', data: 1 } }
   ],
-  // combine this with previous
+  dateLineMultiple: ({ x, y, period, agg = 'sum', offset = 0, isCurrency, group, idPath }) => [
+    { $group: { _id: { date: dateGroup(x, period, offset), group: `$${group}${idPath ? '.' : ''}${idPath || ''}` }, value: { $sum: agg === 'sum' ? `$${y}` : 1 }, idx: { $min: `$${x}`} } },
+    { $sort: {
+      '_id.date.year': 1,
+      '_id.date.month': 1,
+      '_id.date.day': 1
+    } },
+    { $project: {
+      _id: 0,
+      x: dateProjectMultiple(period),
+      y: isCurrency ? { $divide: [`$value`, 100] } : `$value`,
+      group: `$_id.group`
+    } },
+    { $group: { _id: '$group', data: { $push: '$$ROOT' } } },
+    { $project: { _id: 0, id: '$_id', data: 1 } }
+  ],
   quantityByPeriodCalendar: ({ x, y, offset = 0, isCurrency }) => [
     { $group: { _id: dateGroup(x, 'day', offset), value: { $sum: `$${y}` }, idx: { $min: `$${x}`} } },
     { $sort: { idx: 1 } },
