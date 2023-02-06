@@ -446,18 +446,18 @@ const getChart = restrictions => type => ({
   dateIntervalBars: ({ x, y, group, period }) => [
     { $group: { _id: { [`${period}`]: { [`$${period}`]: `$${x}` }, group: `$${group}` }, value: { $sum: `$${y}` } } },
   ],
-  dateLineSingle: ({ x, y, period, agg = 'sum', offset = 0, isCurrency }) => [
+  dateLineSingle: ({ x, y, period, agg = 'sum', offset = 0 }) => [
     { $group: { _id: dateGroup(x, period, offset), value: { $sum: agg === 'sum' ? `$${y}` : 1 }, idx: { $min: `$${x}`} } },
     { $sort: { idx: 1 } },
     { $project: {
       _id: 0,
       x: dateProject(period),
-      y: isCurrency ? { $divide: [`$value`, 100] } : `$value`
+      y: `$value`
     } },
     { $group: { _id: null, data: { $push: '$$ROOT' } } },
     { $project: { _id: 0, id: 'results', data: 1 } }
   ],
-  dateLineMultiple: ({ x, y, period, agg = 'sum', offset = 0, isCurrency, group, idPath }) => [
+  dateLineMultiple: ({ x, y, period, agg = 'sum', offset = 0, group, idPath }) => [
     { $group: { _id: { date: dateGroup(x, period, offset), group: `$${group}${idPath ? '.' : ''}${idPath || ''}` }, value: { $sum: agg === 'sum' ? `$${y}` : 1 }, idx: { $min: `$${x}`} } },
     { $sort: {
       '_id.date.year': 1,
@@ -467,19 +467,19 @@ const getChart = restrictions => type => ({
     { $project: {
       _id: 0,
       x: dateProjectMultiple(period),
-      y: isCurrency ? { $divide: [`$value`, 100] } : `$value`,
+      y: `$value`,
       group: `$_id.group`
     } },
     { $group: { _id: '$group', data: { $push: '$$ROOT' } } },
     { $project: { _id: 0, id: '$_id', data: 1 } }
   ],
-  quantityByPeriodCalendar: ({ x, y, offset = 0, isCurrency }) => [
+  quantityByPeriodCalendar: ({ x, y, offset = 0 }) => [
     { $group: { _id: dateGroup(x, 'day', offset), value: { $sum: `$${y}` }, idx: { $min: `$${x}`} } },
     { $sort: { idx: 1 } },
     { $project: {
       _id: 0,
       day: dateProject2('day'),
-      value: isCurrency ? { $divide: [`$value`, 100] } : `$value`
+      value: `$value`
     } },
   ],
   topNPie: ({ field, idPath, size = 10, unwind, lookup, include }) => [
@@ -526,14 +526,14 @@ const getChart = restrictions => type => ({
       value: `$count`
     } }
   ],
-  dayOfWeekSummaryBars: ({ x, y, group, idPath, agg, offset = 0, isCurrency }) => [
+  dayOfWeekSummaryBars: ({ x, y, group, idPath, agg, offset = 0 }) => [
     { $group: {
       _id: { day: { $dayOfWeek: { date: `$${x}`, timezone: timezoneOffset(offset) } }, [`${group || 'results'}`]: group ? `$${group}${idPath ? '.' : ''}${idPath || ''}` : 'results' },
       value: { $sum: agg === 'sum' ? `$${y}` : `$${y}` }
     } },
     { $group: {
       _id: `$_id.day`,
-      segments: { $push: { k: `$_id.${group || 'results'}`, v: isCurrency ? { $divide: [`$value`, 100] } : `$value` } },
+      segments: { $push: { k: `$_id.${group || 'results'}`, v: `$value` } },
     } },
     { $set: {
       segments: { $arrayToObject: '$segments'}
@@ -547,7 +547,7 @@ const getChart = restrictions => type => ({
       id: { $arrayElemAt: [[null, 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], `$id`] }
     } }
   ],
-  hourOfDaySummaryLine: ({ x, y, group, idPath, agg, offset = 0, isCurrency }) => [
+  hourOfDaySummaryLine: ({ x, y, group, idPath, agg, offset = 0 }) => [
     { $group: {
       _id: { hour: { $hour: { date: `$${x}`, timezone: timezoneOffset(offset) } }, [`${group || 'results'}`]: group ? `$${group}${idPath ? '.' : ''}${idPath || ''}` : 'results' },
       value: { $sum: agg === 'sum' ? `$${y}` : `$${y}` }
@@ -556,7 +556,7 @@ const getChart = restrictions => type => ({
       _id: `$_id.${group || 'results'}`,
       data: { $push: {
         x: '$_id.hour',
-        y: isCurrency ? { $divide: [`$value`, 100] } : `$value`
+        y: `$value`
       } },
     } },
     { $project: {
