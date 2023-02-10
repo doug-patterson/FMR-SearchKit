@@ -134,6 +134,22 @@ let typeFilters = {
           },
         ]
       : [],
+  subqueryFacet: ({
+    field,
+    idPath,
+    subqueryValues
+  }) =>
+    _.size(subqueryValues)
+      ? [
+          {
+            $match: {
+              [`${field}${idPath ? '.' : ''}${idPath || ''}`]: {
+                $in: subqueryValues
+              },
+            },
+          },
+        ]
+      : [],
   numeric: ({ field, from, to }) =>
     _.isNumber(from) || _.isNumber(to)
       ? [
@@ -212,20 +228,19 @@ let typeFilters = {
 
 typeFilters.hidden = typeFilters.facet
 
-let typeFilterStages = filter => typeFilters[filter.type](filter)
+let typeFilterStages = subqueryValues => filter => typeFilters[filter.type]({ ...filter, subqueryValues: subqueryValues[filter.key] })
 
-let getTypeFilterStages = queryFilters =>
-  _.flatMap(typeFilterStages, queryFilters)
+let getTypeFilterStages = (queryFilters, subqueryValues) =>
+  _.flatMap(typeFilterStages(subqueryValues), queryFilters)
 
-let typeAggs = restrictions => ({
+let typeAggs = (restrictions, subqueryValues) => ({
   arrayElementPropFacet: (
-    { key, field, prop, values = [], isMongoId, lookup, idPath, include },
+    { key, field, prop, values = [], isMongoId, lookup, idPath, include, size = 100 },
     filters,
-    collection,
-    size = 100
+    collection
   ) => [
     ...restrictions[collection],
-    ...getTypeFilterStages(_.reject({ key }, filters)),
+    ...getTypeFilterStages(_.reject({ key }, filters), subqueryValues),
     { $unwind: { path: `$${field}` } },
     { $group: { _id: `$${field}.${prop}${idPath ? '.' : ''}${idPath || ''}`, count: { $addToSet: '$_id' }, value: { $first: idPath ? `$${field}.${prop}`: `$${field}` } } },
     ...(lookup
@@ -283,25 +298,17 @@ let typeAggs = restrictions => ({
       },
     },
     {
-      $sort: {
-        count: -1,
-      },
+      $sort: { checked: -1, count: -1, ...(include ? { [`value.${_.first(include)}`]: 1 } : { value: 1 }) }
     },
     { $limit: size },
   ],
-  // both of these need to support an `idPath` property such that if it's present
-  // the filtering is by field.idPath and the rest of field is included on `value`
   facet: (
-    { key, field, idPath, include, values = [], isMongoId, lookup },
+    { key, field, idPath, include, values = [], isMongoId, lookup, size = 100 },
     filters,
     collection
   ) => [
-    // we should actually figure out what collections we'll be doing lookups on
-    // beforehand and run all the apply restrictions calls in parallel with 
-    // Promise.all and then pass the results into all these functions. Right now
-    // we're running these potentially heavy feathers hook pipelines repeatedly and serially
     ...restrictions[collection],
-    ...getTypeFilterStages(_.reject({ key }, filters)),
+    ...getTypeFilterStages(_.reject({ key }, filters), subqueryValues),
     { $unwind: { path: `$${field}${idPath ? '.' : ''}${idPath || ''}`, preserveNullAndEmptyArrays: true } },
     { $group: { _id: `$${field}${idPath ? '.' : ''}${idPath || ''}`, count: { $sum: 1 }, value: { $first: `$${field}` } } },
     ...(lookup
@@ -359,19 +366,64 @@ let typeAggs = restrictions => ({
       },
     },
     {
-      $sort: { count: -1 }
-    }
+      $sort: { checked: -1, count: -1, ...(include ? { [`value.${_.first(include)}`]: 1 } : { value: 1 }) }
+    },
+    { $limit: size },
+  ],
+  subqueryFacet: (
+    { key, field, idPath, subqueryLocalIdPath, subqueryCollection, subqueryField, include, values = [], optionsAreMongoIds, size = 100 },
+    filters,
+    collection
+  ) => [
+    ...restrictions[collection],
+    ...getTypeFilterStages(_.reject({ key }, filters), subqueryValues),
+    { $group: { _id: `$${field}${idPath ? '.' : ''}${idPath || ''}`, count: { $sum: 1 } } },
+    { $lookup: {
+      from: subqueryCollection,
+      as: 'value',
+      localField: '_id',
+      foreignField: subqueryField
+    } },
+    { $unwind: {
+      path: '$value',
+      preserveNullAndEmptyArrays: true
+    } },
+    { $group: { _id: `$value.${subqueryLocalIdPath}`, count: { $sum: '$count' }, value: { $first: `$value` } } },
+    {
+      $project: {
+        _id: 1,
+        count: 1,
+        ...(include ? {
+          ...arrayToObject(
+            include => `value.${include}`,
+            _.constant(1)
+          )(include)
+        } : { value: 1 }),
+        checked: {
+          $in: [
+            '$_id',
+            _.size(values) && optionsAreMongoIds ? _.map(ObjectId, values) : values,
+          ],
+        },
+      },
+    },
+    {
+      $sort: { checked: -1, count: -1, ...(include ? { [`value.${_.first(include)}`]: 1 } : { value: 1 }) }
+    },
+    { $limit: size },
   ],
 })
 
 let noResultsTypes = ['hidden', 'hiddenExists', 'numeric', 'dateTimeInterval', 'boolean', 'fieldHasTruthyValue', 'arraySize']
 
-let getFacets = (restrictions, filters, collection) => {
-  let facetFilters = _.omitBy(f => _.includes(f.type, noResultsTypes), filters)
+let getFacets = (restrictions, subqueryValues, filters, collection) => {
+  let facetFilters = _.reject(f => _.includes(f.type, noResultsTypes), filters)
   let result = {}
 
+  let restrictedTypeAggs = typeAggs(restrictions, subqueryValues)
+
   for (let filter of _.values(facetFilters)) {
-    result[filter.key] = typeAggs(restrictions)[filter.type](filter, filters, collection)
+    result[filter.key] = restrictedTypeAggs[filter.type](filter, filters, collection, subqueryValues)
   }
 
   return result
@@ -677,7 +729,8 @@ let lookupStages = (restrictions, lookups) => {
 module.exports = ({
   services,
   restrictSchemasForUser = _.constant(_.identity),
-  servicesPath = 'services/'
+  servicesPath = 'services/',
+  maxResultSize
 }) => async app => {
   let schemas = _.flow(
     _.map(service => [service, require(`${servicesPath}${service}/schema`)]),
@@ -717,10 +770,17 @@ module.exports = ({
         filters,
         charts,
         lookup,
-        includeSchema
+        includeSchema,
       },
       params
     ) => {
+      if (!_.includes(collection, services)) {
+        throw new Error('Unauthorized collection request')
+      }
+      if (maxResultSize && pageSize > maxResultSize) {
+        throw new Error('Too many results requested')
+      }
+
       let schema = await app.service('schema').get(collection)
       let project = arrayToObject(_.identity, _.constant(1))(include || _.keys(schema.properties))
 
@@ -729,11 +789,44 @@ module.exports = ({
         ..._.map('lookup.from', charts),
         ..._.map('lookup.from', filters)
       ])
+      if (_.size(_.difference(collections, services))) {
+        throw new Error('Unauthorized collection request')
+      }
 
-      let restrictionAggs = await Promise.all(_.map(collectionName => applyRestrictions(collectionName, params), collections))
-      let restrictions = _.zipObject(collections, restrictionAggs)
+      let getRestrictions = async () => {
+        let restrictionAggs = await Promise.all(_.map(collectionName => applyRestrictions(collectionName, params), collections))
+        return _.zipObject(collections, restrictionAggs)
+      }
 
-      let fullQuery = getTypeFilterStages(filters)
+      let subqueryFilters = _.filter({ type: 'subqueryFacet' }, filters)
+      let subqueryCollections = _.map('subqueryCollection', subqueryFilters)
+      if (_.size(_.difference(subqueryCollections, services))) {
+        throw new Error('Unauthorized collection request')
+      }
+
+      let runSubqueries = _.size(subqueryFilters) ? async () => {
+        let subqueryAggs = await Promise.all(_.map(async ({ values, optionsAreMongoIds, subqueryCollection, subqueryKey, subqueryField, subqueryFieldIdPath, subqueryFieldIsArray }) => [
+          subqueryCollection,
+          _.size(values) ? [
+            ...await applyRestrictions(subqueryCollection, params),
+            { $match: { [subqueryKey]: { $in: optionsAreMongoIds ? _.map(ObjectId, values) : values } } },
+            ...(subqueryFieldIsArray ? [{ $unwind: { path: `$${subqueryField}${subqueryFieldIdPath ? '.' : ''}${subqueryFieldIdPath || ''}`, preserveNullAndEmptyArrays: true }}] : []),
+            { $group: { _id: null, value: { $addToSet: `$${subqueryField}${subqueryFieldIdPath ? '.' : ''}${subqueryFieldIdPath || ''}` } } },
+            { $unwind: '$value' },
+          ]: null
+        ], subqueryFilters))
+
+        let subqueryResults = await Promise.all(_.map(agg => _.last(agg) ? app.service(_.first(agg)).Model.aggregate(_.last(agg), { allowDiskUse: true }).toArray() : [], subqueryAggs))
+
+        return _.zipObject(_.map('key', subqueryFilters), _.map(_.map('value'), subqueryResults))
+      } : _.noop
+
+      let [restrictions, subqueryValues] = await Promise.all([
+        getRestrictions(),
+        runSubqueries()
+      ])
+
+      let fullQuery = getTypeFilterStages(filters, subqueryValues)
 
       let aggs = {
         resultsFacet: [
@@ -755,7 +848,7 @@ module.exports = ({
             ...getCharts(restrictions, charts)
           } }
         ],
-        ...getFacets(restrictions, filters, collection),
+        ...getFacets(restrictions, subqueryValues, filters, collection)
       }
 
       let result = _.fromPairs(
