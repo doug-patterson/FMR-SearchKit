@@ -228,7 +228,7 @@ let typeFilters = {
 
 typeFilters.hidden = typeFilters.facet
 
-let typeFilterStages = subqueryValues => filter => typeFilters[filter.type]({ ...filter, subqueryValues: subqueryValues[filter.key] })
+let typeFilterStages = (subqueryValues = {}) => filter => typeFilters[filter.type]({ ...filter, subqueryValues: subqueryValues[filter.key] })
 
 let getTypeFilterStages = (queryFilters, subqueryValues) =>
   _.flatMap(typeFilterStages(subqueryValues), queryFilters)

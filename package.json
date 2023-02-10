@@ -1,6 +1,6 @@
 {
   "name": "fmr-searchkit",
-  "version": "1.5.19",
+  "version": "1.5.20",
   "description": "Sets up a search service for your feathers-mongo server that provides a rich search experience while reusing the security and business logic in your Feathers hooks. Use with the React library FMR-SearchKit-React.",
   "main": "index.js",
   "scripts": {
