@@ -226,8 +226,6 @@ let typeFilters = {
       : [],
 }
 
-typeFilters.hidden = typeFilters.facet
-
 let typeFilterStages = (subqueryValues = {}) => filter => typeFilters[filter.type]({ ...filter, subqueryValues: subqueryValues[filter.key] })
 
 let getTypeFilterStages = (queryFilters, subqueryValues) =>
@@ -414,7 +412,7 @@ let typeAggs = (restrictions, subqueryValues) => ({
   ],
 })
 
-let noResultsTypes = ['hidden', 'hiddenExists', 'numeric', 'dateTimeInterval', 'boolean', 'fieldHasTruthyValue', 'arraySize']
+let noResultsTypes = ['hiddenExists', 'numeric', 'dateTimeInterval', 'boolean', 'fieldHasTruthyValue', 'arraySize']
 
 let getFacets = (restrictions, subqueryValues, filters, collection) => {
   let facetFilters = _.reject(f => _.includes(f.type, noResultsTypes), filters)
