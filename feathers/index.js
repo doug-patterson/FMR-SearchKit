@@ -195,7 +195,7 @@ let typeFilters = {
           },
         ]
       : [],
-  fieldHasTruthyValue: ({ field, checked }) =>
+  fieldHasTruthyValue: ({ field, checked, negate }) =>
     checked
       ? [
           {
@@ -203,7 +203,7 @@ let typeFilters = {
           },
         ]
       : [],
-  hiddenExists: ({ field, negate }) =>
+  propExists: ({ field, negate }) =>
     [
       {
         $match: { [field]: { $exists: !negate } },
@@ -412,7 +412,7 @@ let typeAggs = (restrictions, subqueryValues) => ({
   ],
 })
 
-let noResultsTypes = ['hiddenExists', 'numeric', 'dateTimeInterval', 'boolean', 'fieldHasTruthyValue', 'arraySize']
+let noResultsTypes = ['propExists', 'numeric', 'dateTimeInterval', 'boolean', 'fieldHasTruthyValue', 'arraySize']
 
 let getFacets = (restrictions, subqueryValues, filters, collection) => {
   let facetFilters = _.reject(f => _.includes(f.type, noResultsTypes), filters)
