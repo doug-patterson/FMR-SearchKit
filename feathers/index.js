@@ -276,7 +276,7 @@ let typeAggs = (restrictions, subqueryValues) => ({
           },
         ]
       : []),
-    ...(optionSearch ? [{ $match: { [include ? `value.${_.first(include)}`: '_id']: { $regex: optionSearch, $options: 'i' } } }] : []),
+    ...(optionSearch ? [{ $match: { [(include || lookup) ? `value.${include ? _.first(include) : _.first(lookup.include)}`: '_id']: { $regex: optionSearch, $options: 'i' } } }] : []),
     {
       $project: {
         _id: 1,
@@ -297,7 +297,7 @@ let typeAggs = (restrictions, subqueryValues) => ({
       },
     },
     {
-      $sort: { checked: -1, count: -1, ...(include ? { [`value.${_.first(include)}`]: 1 } : { value: 1 }), ...(lookup ? { [`lookup.${_.first(_.values(lookup))}`]: 1 } : { value: 1 }) }
+      $sort: { checked: -1, count: -1, ...(include ? { [`value.${_.first(include)}`]: 1 } : { value: 1 }), ...(lookup ? { [`lookup.${_.first(lookup.include)}`]: 1 } : { value: 1 }), ...((!include && !lookup) ? { value: 1 } : {}) }
     },
     { $limit: size },
   ],
@@ -345,7 +345,7 @@ let typeAggs = (restrictions, subqueryValues) => ({
           },
         ]
       : []),
-    ...(optionSearch ? [{ $match: { [(include || lookup) ? `value.${include ? _.first(include) : _.first(_.values(lookup))}`: '_id']: { $regex: optionSearch, $options: 'i' } } }] : []),
+    ...(optionSearch ? [{ $match: { [(include || lookup) ? `value.${include ? _.first(include) : _.first(lookup.include)}`: '_id']: { $regex: optionSearch, $options: 'i' } } }] : []),
     {
       $project: {
         _id: 1,
@@ -366,7 +366,7 @@ let typeAggs = (restrictions, subqueryValues) => ({
       },
     },
     {
-      $sort: { checked: -1, count: -1, ...(include ? { [`value.${_.first(include)}`]: 1 } : { value: 1 }), ...(lookup ? { [`lookup.${_.first(_.values(lookup))}`]: 1 } : { value: 1 }) }
+      $sort: { checked: -1, count: -1, ...(include ? { [`value.${_.first(include)}`]: 1 } : { value: 1 }), ...(lookup ? { [`lookup.${_.first(lookup.include)}`]: 1 } : { value: 1 }), ...((!include && !lookup) ? { value: 1 } : {}) }
     },
     { $limit: size },
   ],
@@ -409,7 +409,7 @@ let typeAggs = (restrictions, subqueryValues) => ({
       },
     },
     {
-      $sort: { checked: -1, count: -1, ...(include ? { [`value.${_.first(include)}`]: 1 } : { value: 1 }) }
+      $sort: { checked: -1, count: -1, ...(include ? { [`value.${_.first(include)}`]: 1 } : { value: 1 }), ...((!include && !lookup) ? { value: 1 } : {}) }
     },
     { $limit: size },
   ],
