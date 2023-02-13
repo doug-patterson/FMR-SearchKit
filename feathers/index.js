@@ -233,7 +233,7 @@ let getTypeFilterStages = (queryFilters, subqueryValues) =>
 
 let typeAggs = (restrictions, subqueryValues) => ({
   arrayElementPropFacet: (
-    { key, field, prop, values = [], isMongoId, lookup, idPath, include, size = 100 },
+    { key, field, prop, values = [], isMongoId, lookup, idPath, include, optionSearch, size = 100 },
     filters,
     collection
   ) => [
@@ -276,6 +276,7 @@ let typeAggs = (restrictions, subqueryValues) => ({
           },
         ]
       : []),
+    ...(optionSearch ? [{ $match: { [include ? `value.${_.first(include)}`: '_id']: { $regex: optionSearch, $options: 'i' } } }] : []),
     {
       $project: {
         _id: 1,
@@ -296,12 +297,12 @@ let typeAggs = (restrictions, subqueryValues) => ({
       },
     },
     {
-      $sort: { checked: -1, count: -1, ...(include ? { [`value.${_.first(include)}`]: 1 } : { value: 1 }) }
+      $sort: { checked: -1, count: -1, ...(include ? { [`value.${_.first(include)}`]: 1 } : { value: 1 }), ...(lookup ? { [`lookup.${_.first(_.values(lookup))}`]: 1 } : { value: 1 }) }
     },
     { $limit: size },
   ],
   facet: (
-    { key, field, idPath, include, values = [], isMongoId, lookup, size = 100 },
+    { key, field, idPath, include, values = [], isMongoId, lookup, optionSearch, size = 100 },
     filters,
     collection
   ) => [
@@ -344,6 +345,7 @@ let typeAggs = (restrictions, subqueryValues) => ({
           },
         ]
       : []),
+    ...(optionSearch ? [{ $match: { [(include || lookup) ? `value.${include ? _.first(include) : _.first(_.values(lookup))}`: '_id']: { $regex: optionSearch, $options: 'i' } } }] : []),
     {
       $project: {
         _id: 1,
@@ -364,12 +366,12 @@ let typeAggs = (restrictions, subqueryValues) => ({
       },
     },
     {
-      $sort: { checked: -1, count: -1, ...(include ? { [`value.${_.first(include)}`]: 1 } : { value: 1 }) }
+      $sort: { checked: -1, count: -1, ...(include ? { [`value.${_.first(include)}`]: 1 } : { value: 1 }), ...(lookup ? { [`lookup.${_.first(_.values(lookup))}`]: 1 } : { value: 1 }) }
     },
     { $limit: size },
   ],
   subqueryFacet: (
-    { key, field, idPath, subqueryLocalIdPath, subqueryCollection, subqueryField, include, values = [], optionsAreMongoIds, size = 100 },
+    { key, field, idPath, subqueryLocalIdPath, subqueryCollection, subqueryField, include, values = [], optionsAreMongoIds, optionSearch, size = 100 },
     filters,
     collection
   ) => [
@@ -387,6 +389,7 @@ let typeAggs = (restrictions, subqueryValues) => ({
       preserveNullAndEmptyArrays: true
     } },
     { $group: { _id: `$value.${subqueryLocalIdPath}`, count: { $sum: '$count' }, value: { $first: `$value` } } },
+    ...(optionSearch ? [{ $match: { [include ? `value.${_.first(include)}`: '_id']: { $regex: optionSearch, $options: 'i' } } }] : []),
     {
       $project: {
         _id: 1,
@@ -785,7 +788,8 @@ module.exports = ({
       let collections = _.flow(_.compact, _.uniq)([
         collection, 
         ..._.map('lookup.from', charts),
-        ..._.map('lookup.from', filters)
+        ..._.map('lookup.from', filters),
+        ..._.map('from', lookup)
       ])
       if (_.size(_.difference(collections, services))) {
         throw new Error('Unauthorized collection request')
