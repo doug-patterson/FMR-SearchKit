@@ -665,13 +665,13 @@ const getChart = restrictions => type => ({
     { $skip: (page - 1) * pageSize },
     { $limit: pageSize }
   ],
-  groupedTotals: ({ group, include}) => [
+  totalsBar: ({ columns }) => [
     { $group: {
-      _id: group ? `$${group}` : null,
+      _id: null,
       ..._.flow(
-        _.map(({ key, field, agg }) => [key || field, { [`$${agg}`]: `$${field}` }]),
+        _.map(({ key, field, agg }) => [key || field, { [`$${agg === 'count' ? 'sum' : agg}`]: agg === 'count' ? 1 : `$${field}` }]),
         _.fromPairs
-      )(include)
+      )(columns)
     } }
   ]
 }[type])
