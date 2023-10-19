@@ -112,7 +112,7 @@ let typeFilters = {
               [`${field}.${prop}${idPath ? '.' : ''}${idPath || ''}`]: {
                 [`${exclude ? '$nin' : '$in'}`]:
                   _.size(values) && isMongoId
-                    ? _.map(ObjectId, values)
+                    ? _.map(val => new ObjectId(val), values)
                     : values,
               },
             },
@@ -127,7 +127,7 @@ let typeFilters = {
               [`${field}${idPath ? '.' : ''}${idPath || ''}`]: {
                 [`${exclude ? '$nin' : '$in'}`]:
                   _.size(values) && isMongoId
-                    ? _.map(ObjectId, values)
+                    ? _.map(val => new ObjectId(val), values)
                     : values,
               },
             },
@@ -291,7 +291,7 @@ let typeAggs = (restrictions, subqueryValues) => ({
         checked: {
           $in: [
             '$_id',
-            _.size(values) && isMongoId ? _.map(ObjectId, values) : values,
+            _.size(values) && isMongoId ? _.map(val => new ObjectId(val), values) : values,
           ],
         },
       },
@@ -360,7 +360,7 @@ let typeAggs = (restrictions, subqueryValues) => ({
         checked: {
           $in: [
             '$_id',
-            _.size(values) && isMongoId ? _.map(ObjectId, values) : values,
+            _.size(values) && isMongoId ? _.map(val => new ObjectId(val), values) : values,
           ],
         },
       },
@@ -403,7 +403,7 @@ let typeAggs = (restrictions, subqueryValues) => ({
         checked: {
           $in: [
             '$_id',
-            _.size(values) && optionsAreMongoIds ? _.map(ObjectId, values) : values,
+            _.size(values) && optionsAreMongoIds ? _.map(val => new ObjectId(val), values) : values,
           ],
         },
       },
@@ -811,7 +811,7 @@ module.exports = ({
           subqueryCollection,
           _.size(values) ? [
             ...await applyRestrictions(subqueryCollection, params),
-            { $match: { [subqueryKey]: { $in: optionsAreMongoIds ? _.map(ObjectId, values) : values } } },
+            { $match: { [subqueryKey]: { $in: optionsAreMongoIds ? _.map(val => new ObjectId(val), values) : values } } },
             ...(subqueryFieldIsArray ? [{ $unwind: { path: `$${subqueryField}${subqueryFieldIdPath ? '.' : ''}${subqueryFieldIdPath || ''}`, preserveNullAndEmptyArrays: true }}] : []),
             { $group: { _id: null, value: { $addToSet: `$${subqueryField}${subqueryFieldIdPath ? '.' : ''}${subqueryFieldIdPath || ''}` } } },
             { $unwind: '$value' },
@@ -900,6 +900,8 @@ module.exports = ({
       if (includeSchema) {
         result.schema = schema
       }
+
+      console.log(result)
 
       return result
     },
