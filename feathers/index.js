@@ -901,8 +901,6 @@ module.exports = ({
         result.schema = schema
       }
 
-      console.log(result)
-
       return result
     },
   })
