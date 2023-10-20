@@ -15,12 +15,44 @@ let {
   addYears
 } = require('date-fns')
 
+import {
+  FeathersApp,
+  FeathersContextParams,
+  FeathersServiceHooks,
+  MongoAggregation,
+  Lookup,
+  Search,
+  Filter,
+  SubqueryFacetFilter,
+  ArrayElementPropFacetFilter,
+  FacetFilter,
+  NumericFilter,
+  DateTimeIntervalFilter,
+  BooleanFilter,
+  FieldHasTruthyValueFilter,
+  PropExistsFilter,
+  ArraySizeFilter,
+  SearchRestrictons,
+  DateIntervalBarChart,
+  DateLineSingleChart,
+  DateLineMultipleChart,
+  QuantityByPeriodCalendarChart,
+  TopNPieChart,
+  DayOfWeekSummaryBarsChart,
+  HourOfDaySummaryLineChart,
+  SummaryTableChart,
+  FieldStatsChart,
+  TotalsBarColumn,
+  TotalsBarChart,
+  Chart
+} from './types'
+
 let mapIndexed = _.convert({ cap: false }).map
-let arrayToObject = _.curry((key, val, arr) =>
+let arrayToObject = _.curry((key: string, val: any, arr: any[]) =>
   _.flow(_.keyBy(key), _.mapValues(val))(arr)
 )
 
-let makeContextForBeforeHooks = ({ app, params, collection }) => ({
+let makeContextForBeforeHooks = ({ app, params, collection }: { app: FeathersApp, params: FeathersContextParams, collection: string}) => ({
   params: { ...params, query: {} },
   type: 'before',
   method: 'find',
@@ -29,7 +61,7 @@ let makeContextForBeforeHooks = ({ app, params, collection }) => ({
   app,
 })
 
-let applyServiceRestrictions = ({ app, hooks }) => async (collection, params) => {
+let applyServiceRestrictions = ({ app, hooks }: { app: FeathersApp, hooks: FeathersServiceHooks }) => async (collection: string, params: FeathersContextParams) => {
   let beforeHooks = _.get(`${collection}.before`, hooks) || []
   let beforeContext = makeContextForBeforeHooks({ app, params, collection })
   
@@ -38,13 +70,23 @@ let applyServiceRestrictions = ({ app, hooks }) => async (collection, params) =>
   }
 
   let beforeHookQueryProps = _.keys(beforeContext.params.query)
-  let props = _.reject(prop => _.includes(prop, ['$skip', '$limit']), beforeHookQueryProps)
+  let props = _.reject((prop: string) => _.includes(prop, ['$skip', '$limit']), beforeHookQueryProps)
   let beforeHookQuery = _.pick(props, beforeContext.params.query)
 
   return [{ $match: beforeHookQuery }]
 }
 
-let makeContextForAfterHooks = ({ app, params, field, record }) => ({
+let makeContextForAfterHooks = ({
+    app,
+    params,
+    field,
+    record
+  }: {
+    app: FeathersApp
+    params: FeathersContextParams
+    field?: string
+    record: any
+  }) => ({
   params,
   method: 'find',
   type: 'after',
@@ -53,7 +95,7 @@ let makeContextForAfterHooks = ({ app, params, field, record }) => ({
   app,
 })
 
-let getAfterHookExecutor = ({ app, hooks }) => ({ collection, field, params }) => async record => {
+let getAfterHookExecutor = ({ app, hooks }: { app: FeathersApp, hooks: FeathersServiceHooks}) => ({ collection, field, params }: { collection: string, field?: string, params: any}) => async (record: any) => {
   let afterContext = makeContextForAfterHooks({
     app,
     params,
@@ -69,42 +111,42 @@ let getAfterHookExecutor = ({ app, hooks }) => ({ collection, field, params }) =
   return _.flow(_.castArray, _.first)(_.get('result', afterContext))
 }
 
-let applyOffset = (endpoint, offset) => addMinutes(endpoint, 0 - offset)
+let applyOffset = (endpoint: Date, offset: number): Date => addMinutes(endpoint, 0 - offset)
 
 let intervals = {
-  'Today': (date, offset) => ({ from: applyOffset(startOfDay(applyOffset(date, offset)), 0 - offset) }),
-  'Current Week': (date, offset) => ({ from: applyOffset(startOfWeek(applyOffset(date, offset)), 0 - offset) }),
-  'Current Month': (date, offset) => ({ from: applyOffset(startOfMonth(applyOffset(date, offset)), 0 - offset) }),
-  'Current Quarter': (date, offset) => ({ from: applyOffset(startOfQuarter(applyOffset(date, offset)), 0 - offset) }),
-  'Current Year': (date, offset) => ({ from: applyOffset(startOfYear(applyOffset(date, offset)), 0 - offset) }),
+  'Today': (date: Date, offset: number) => ({ from: applyOffset(startOfDay(applyOffset(date, offset)), 0 - offset) }),
+  'Current Week': (date: Date, offset: number) => ({ from: applyOffset(startOfWeek(applyOffset(date, offset)), 0 - offset) }),
+  'Current Month': (date: Date, offset: number) => ({ from: applyOffset(startOfMonth(applyOffset(date, offset)), 0 - offset) }),
+  'Current Quarter': (date: Date, offset: number) => ({ from: applyOffset(startOfQuarter(applyOffset(date, offset)), 0 - offset) }),
+  'Current Year': (date: Date, offset: number) => ({ from: applyOffset(startOfYear(applyOffset(date, offset)), 0 - offset) }),
 
   // no offest for these
-  'Last Hour': date => ({ from: addHours(date, -1) }),
-  'Last Two Hours': date => ({ from: addHours(date, -2) }),
-  'Last Four Hours': date => ({ from: addHours(date, -4) }),
-  'Last Eight Hours': date => ({ from: addHours(date, -8) }),
-  'Last Twelve Hours': date => ({ from: addHours(date, -12) }),
-  'Last Day': date => ({ from: addDays(date, -1) }),
-  'Last Two Days': date => ({ from: addDays(date, -2) }),
-  'Last Three Days': date => ({ from: addDays(date, -3) }),
-  'Last Week': date => ({ from: addDays(date, -7) }),
-  'Last Two Weeks': date => ({ from: addDays(date, -14) }),
-  'Last Month': date => ({ from: addMonths(date, -1) }),
-  'Last Quarter': date => ({ from: addQuarters(date, -1) }),
-  'Last Year': date => ({ from: addYears(date, -1) }),
-  'Last Two Years': date => ({ from: addYears(date, -1) }),
+  'Last Hour': (date: Date) => ({ from: addHours(date, -1) }),
+  'Last Two Hours': (date: Date) => ({ from: addHours(date, -2) }),
+  'Last Four Hours': (date: Date) => ({ from: addHours(date, -4) }),
+  'Last Eight Hours': (date: Date) => ({ from: addHours(date, -8) }),
+  'Last Twelve Hours': (date: Date) => ({ from: addHours(date, -12) }),
+  'Last Day': (date: Date) => ({ from: addDays(date, -1) }),
+  'Last Two Days': (date: Date) => ({ from: addDays(date, -2) }),
+  'Last Three Days': (date: Date) => ({ from: addDays(date, -3) }),
+  'Last Week': (date: Date) => ({ from: addDays(date, -7) }),
+  'Last Two Weeks': (date: Date) => ({ from: addDays(date, -14) }),
+  'Last Month': (date: Date) => ({ from: addMonths(date, -1) }),
+  'Last Quarter': (date: Date) => ({ from: addQuarters(date, -1) }),
+  'Last Year': (date: Date) => ({ from: addYears(date, -1) }),
+  'Last Two Years': (date: Date) => ({ from: addYears(date, -1) }),
 
-  'Previous Full Day': (date, offset) => ({ from: applyOffset(addDays(startOfDay(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfDay(applyOffset(date, offset)), 0 - offset) }),
-  'Previous Full Week': (date, offset) => ({ from: applyOffset(addWeeks(startOfWeek(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfWeek(applyOffset(date, offset)), 0 - offset) }),
-  'Previous Full Month': (date, offset) => ({ from: applyOffset(addMonths(startOfMonth(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfMonth(applyOffset(date, offset)), 0 - offset) }),
-  'Previous Full Quarter': (date, offset) => ({ from: applyOffset(addQuarters(startOfQuarter(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfQuarter(applyOffset(date, offset)), 0 - offset) }),
-  'Previous Full Year': (date, offset) => ({ from: applyOffset(addYears(startOfYear(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfYear(applyOffset(date, offset)), 0 - offset) }),
+  'Previous Full Day': (date: Date, offset: number) => ({ from: applyOffset(addDays(startOfDay(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfDay(applyOffset(date, offset)), 0 - offset) }),
+  'Previous Full Week': (date: Date, offset: number) => ({ from: applyOffset(addWeeks(startOfWeek(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfWeek(applyOffset(date, offset)), 0 - offset) }),
+  'Previous Full Month': (date: Date, offset: number) => ({ from: applyOffset(addMonths(startOfMonth(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfMonth(applyOffset(date, offset)), 0 - offset) }),
+  'Previous Full Quarter': (date: Date, offset: number) => ({ from: applyOffset(addQuarters(startOfQuarter(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfQuarter(applyOffset(date, offset)), 0 - offset) }),
+  'Previous Full Year': (date: Date, offset: number) => ({ from: applyOffset(addYears(startOfYear(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfYear(applyOffset(date, offset)), 0 - offset) }),
 }
 
-let intervalEndpoints = (interval, offset) => intervals[interval](new Date(), offset)
+let intervalEndpoints = (interval: keyof typeof intervals, offset: number) => intervals[interval](new Date(), offset)
 
 let typeFilters = {
-  arrayElementPropFacet: ({ field, prop, idPath, values, isMongoId, exclude }) =>
+  arrayElementPropFacet: ({ field, prop, idPath, values, isMongoId, exclude }: ArrayElementPropFacetFilter) =>
     _.size(values)
       ? [
           {
@@ -112,14 +154,14 @@ let typeFilters = {
               [`${field}.${prop}${idPath ? '.' : ''}${idPath || ''}`]: {
                 [`${exclude ? '$nin' : '$in'}`]:
                   _.size(values) && isMongoId
-                    ? _.map(val => new ObjectId(val), values)
+                    ? _.map((val: string) => new ObjectId(val), values)
                     : values,
               },
             },
           },
         ]
       : [],
-  facet: ({ field, idPath, values, isMongoId, exclude }) =>
+  facet: ({ field, idPath, values, isMongoId, exclude }: FacetFilter) =>
     _.size(values)
       ? [
           {
@@ -127,7 +169,7 @@ let typeFilters = {
               [`${field}${idPath ? '.' : ''}${idPath || ''}`]: {
                 [`${exclude ? '$nin' : '$in'}`]:
                   _.size(values) && isMongoId
-                    ? _.map(val => new ObjectId(val), values)
+                    ? _.map((val: string) => new ObjectId(val), values)
                     : values,
               },
             },
@@ -138,7 +180,7 @@ let typeFilters = {
     field,
     idPath,
     subqueryValues
-  }) =>
+  }: SubqueryFacetFilter) =>
     _.size(subqueryValues)
       ? [
           {
@@ -150,7 +192,7 @@ let typeFilters = {
           },
         ]
       : [],
-  numeric: ({ field, from, to }) =>
+  numeric: ({ field, from, to }: NumericFilter) =>
     _.isNumber(from) || _.isNumber(to)
       ? [
           {
@@ -163,9 +205,9 @@ let typeFilters = {
           },
         ]
       : [],
-  dateTimeInterval: ({ field, from, to, interval, offset }) => {
+  dateTimeInterval: ({ field, from, to, interval, offset }: DateTimeIntervalFilter) => {
     if (interval) {
-      let endpoints = intervalEndpoints(interval, offset)
+      let endpoints: { from?: Date, to?: Date } = intervalEndpoints(interval as keyof typeof intervals, offset || 0)
       to = endpoints.to
       from = endpoints.from
     } else {
@@ -187,7 +229,7 @@ let typeFilters = {
       }
     ] : []
   },
-  boolean: ({ field, checked }) =>
+  boolean: ({ field, checked }: BooleanFilter) =>
     checked
       ? [
           {
@@ -195,7 +237,7 @@ let typeFilters = {
           },
         ]
       : [],
-  fieldHasTruthyValue: ({ field, checked, negate }) =>
+  fieldHasTruthyValue: ({ field, checked }: FieldHasTruthyValueFilter) =>
     checked
       ? [
           {
@@ -203,13 +245,13 @@ let typeFilters = {
           },
         ]
       : [],
-  propExists: ({ field, negate }) =>
+  propExists: ({ field, negate }: PropExistsFilter) =>
     [
       {
         $match: { [field]: { $exists: !negate } },
       },
     ],
-  arraySize: ({ field, from, to }) =>
+  arraySize: ({ field, from, to }: ArraySizeFilter) =>
     _.isNumber(from) || _.isNumber(to)
       ? [
           {
@@ -226,16 +268,16 @@ let typeFilters = {
       : [],
 }
 
-let typeFilterStages = (subqueryValues = {}) => filter => typeFilters[filter.type]({ ...filter, subqueryValues: subqueryValues[filter.key] })
+let typeFilterStages = (subqueryValues = {}) => (filter: Filter) => typeFilters[filter.type as keyof typeof typeFilters]({ ...filter, subqueryValues: subqueryValues[filter.key as keyof typeof subqueryValues] } as any)
 
-let getTypeFilterStages = (queryFilters, subqueryValues) =>
+let getTypeFilterStages = (queryFilters: Filter[], subqueryValues: { [key: string]: any }) =>
   _.flatMap(typeFilterStages(subqueryValues), queryFilters)
 
-let typeAggs = (restrictions, subqueryValues) => ({
+let typeAggs = (restrictions: SearchRestrictons, subqueryValues: { [key: string]: any }) => ({
   arrayElementPropFacet: (
-    { key, field, prop, values = [], isMongoId, lookup, idPath, include, optionSearch, size = 100 },
-    filters,
-    collection
+    { key, field, prop, values = [], isMongoId, lookup, idPath, include, optionSearch, size = 100 }: ArrayElementPropFacetFilter,
+    filters: Filter[],
+    collection: string
   ) => [
     ...restrictions[collection],
     ...getTypeFilterStages(_.reject({ key }, filters), subqueryValues),
@@ -269,14 +311,14 @@ let typeAggs = (restrictions, subqueryValues) => ({
               _id: 1,
               count: 1,
               ...arrayToObject(
-                include => `lookup.${include}`,
+                (include: string) => `lookup.${include}`,
                 _.constant(1)
               )(lookup.include),
             },
           },
         ]
       : []),
-    ...(optionSearch ? [{ $match: { [(include || lookup) ? `value.${include ? _.first(include) : _.first(lookup.include)}`: '_id']: { $regex: optionSearch, $options: 'i' } } }] : []),
+    ...(optionSearch ? [{ $match: { [(include || lookup) ? `value.${include ? _.first(include) : _.first(lookup?.include)}`: '_id']: { $regex: optionSearch, $options: 'i' } } }] : []),
     {
       $project: {
         _id: 1,
@@ -284,14 +326,14 @@ let typeAggs = (restrictions, subqueryValues) => ({
         lookup: 1,
         ...(include ? {
           ...arrayToObject(
-            include => `value.${include}`,
+            (include: string) => `value.${include}`,
             _.constant(1)
           )(include)
         } : { value: 1 }),
         checked: {
           $in: [
             '$_id',
-            _.size(values) && isMongoId ? _.map(val => new ObjectId(val), values) : values,
+            _.size(values) && isMongoId ? _.map((val: string) => new ObjectId(val), values) : values,
           ],
         },
       },
@@ -302,9 +344,9 @@ let typeAggs = (restrictions, subqueryValues) => ({
     { $limit: size },
   ],
   facet: (
-    { key, field, idPath, include, values = [], isMongoId, lookup, optionSearch, size = 100 },
-    filters,
-    collection
+    { key, field, idPath, include, values = [], isMongoId, lookup, optionSearch, size = 100 }: FacetFilter,
+    filters: Filter[],
+    collection: string
   ) => [
     ...restrictions[collection],
     ...getTypeFilterStages(_.reject({ key }, filters), subqueryValues),
@@ -338,14 +380,14 @@ let typeAggs = (restrictions, subqueryValues) => ({
               _id: 1,
               count: 1,
               ...arrayToObject(
-                include => `lookup.${include}`,
+                (include: string) => `lookup.${include}`,
                 _.constant(1)
               )(lookup.include),
             },
           },
         ]
       : []),
-    ...(optionSearch ? [{ $match: { [(include || lookup) ? `value.${include ? _.first(include) : _.first(lookup.include)}`: '_id']: { $regex: optionSearch, $options: 'i' } } }] : []),
+    ...(optionSearch ? [{ $match: { [(include || lookup) ? `value.${include ? _.first(include) : _.first(lookup?.include)}`: '_id']: { $regex: optionSearch, $options: 'i' } } }] : []),
     {
       $project: {
         _id: 1,
@@ -353,14 +395,14 @@ let typeAggs = (restrictions, subqueryValues) => ({
         lookup: 1,
         ...(include ? {
           ...arrayToObject(
-            include => `value.${include}`,
+            (include: string) => `value.${include}`,
             _.constant(1)
           )(include)
         } : { value: 1 }),
         checked: {
           $in: [
             '$_id',
-            _.size(values) && isMongoId ? _.map(val => new ObjectId(val), values) : values,
+            _.size(values) && isMongoId ? _.map((val: string) => new ObjectId(val), values) : values,
           ],
         },
       },
@@ -371,9 +413,9 @@ let typeAggs = (restrictions, subqueryValues) => ({
     { $limit: size },
   ],
   subqueryFacet: (
-    { key, field, idPath, subqueryLocalIdPath, subqueryCollection, subqueryField, include, values = [], optionsAreMongoIds, optionSearch, size = 100 },
-    filters,
-    collection
+    { key, field, idPath, subqueryLocalIdPath, subqueryCollection, subqueryField, include, values = [], optionsAreMongoIds, optionSearch, size = 100, lookup }: SubqueryFacetFilter,
+    filters: Filter[],
+    collection: string
   ) => [
     ...restrictions[collection],
     ...getTypeFilterStages(_.reject({ key }, filters), subqueryValues),
@@ -396,14 +438,14 @@ let typeAggs = (restrictions, subqueryValues) => ({
         count: 1,
         ...(include ? {
           ...arrayToObject(
-            include => `value.${include}`,
+            (include: string) => `value.${include}`,
             _.constant(1)
           )(include)
         } : { value: 1 }),
         checked: {
           $in: [
             '$_id',
-            _.size(values) && optionsAreMongoIds ? _.map(val => new ObjectId(val), values) : values,
+            _.size(values) && optionsAreMongoIds ? _.map((val: string) => new ObjectId(val), values) : values,
           ],
         },
       },
@@ -417,27 +459,28 @@ let typeAggs = (restrictions, subqueryValues) => ({
 
 let noResultsTypes = ['propExists', 'numeric', 'dateTimeInterval', 'boolean', 'fieldHasTruthyValue', 'arraySize']
 
-let getFacets = (restrictions, subqueryValues, filters, collection) => {
-  let facetFilters = _.reject(f => _.includes(f.type, noResultsTypes), filters)
-  let result = {}
+let getFacets = (restrictions: SearchRestrictons, subqueryValues: { [k: string]: any[]}, filters: Filter[], collection: string) => {
+  let facetFilters = _.reject((f: Filter) => _.includes(f.type, noResultsTypes), filters)
+  let result: any = {}
 
-  let restrictedTypeAggs = typeAggs(restrictions, subqueryValues)
+  let restrictedTypeAggs: any = typeAggs(restrictions, subqueryValues)
 
   for (let filter of _.values(facetFilters)) {
-    result[filter.key] = restrictedTypeAggs[filter.type](filter, filters, collection, subqueryValues)
+    const resultForKey: any = restrictedTypeAggs[filter.type](filter, filters, collection, subqueryValues) as any
+    result[filter.key] = resultForKey
   }
 
   return result
 }
 
-const fullDateGroup = (field, timezone) => ({
+const fullDateGroup = (field: string, timezone: string) => ({
   year: { $year: { date: `$${field}`, timezone } },
   month: { $month: { date: `$${field}`, timezone } },
   week: { $week: { date: `$${field}`, timezone } },
   day: { $dayOfMonth: { date: `$${field}`, timezone } }
 })
 
-const timezoneOffset = num => {
+const timezoneOffset = (num: number) => {
   let sign = num < 0 ? '+' : '-' // reverse the offset received from the browser
   let abs = Math.abs(num)
   let hours = Math.floor(abs/60)
@@ -450,18 +493,19 @@ const timezoneOffset = num => {
 
 const periods = ['day', 'month', 'year']
 
-const dateGroup = (field, period, offset) => {
+const dateGroup = (field: string, period: string, offset: number) => {
   let dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
 
   return _.pick(dateGroupPick, fullDateGroup(field, timezoneOffset(offset)))
 }
 
-const dateProject = period => {
+const dateProject = (period: string) => {
   let dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
 
-  let [first, ...rest] = _.map(field => `$_id.${field}`, dateGroupPick)
-  let arr = [{ $toString: first }]
-  
+  let [first, ...rest] = _.map((field: string) => `$_id.${field}`, dateGroupPick)
+  let arr: any[] = [{ $toString: first }]
+  let field: string
+
   while (field = rest.shift()) {
     arr.push('/', { $toString: field })
   }
@@ -469,11 +513,12 @@ const dateProject = period => {
   return { $concat: arr }
 }
 
-const dateProject2 = period => {
+const dateProject2 = (period: string) => {
   let dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
 
-  let [first, ...rest] = _.map(field => `$_id.${field}`, _.reverse(dateGroupPick))
-  let arr = [{ $toString: first }]
+  let [first, ...rest] = _.map((field: string) => `$_id.${field}`, _.reverse(dateGroupPick))
+  let arr: any[] = [{ $toString: first }]
+  let field: string
   
   while (field = rest.shift()) {
     arr.push('-', { $toString: field })
@@ -482,11 +527,12 @@ const dateProject2 = period => {
   return { $concat: arr }
 }
 
-const dateProjectMultiple = period => {
+const dateProjectMultiple = (period: string) => {
   let dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
 
-  let [first, ...rest] = _.map(field => `$_id.date.${field}`, dateGroupPick)
-  let arr = [{ $toString: first }]
+  let [first, ...rest] = _.map((field: string) => `$_id.date.${field}`, dateGroupPick)
+  let arr: any[] = [{ $toString: first }]
+  let field: string
   
   while (field = rest.shift()) {
     arr.push('/', { $toString: field })
@@ -495,11 +541,11 @@ const dateProjectMultiple = period => {
   return { $concat: arr }
 }
 
-const getChart = restrictions => type => ({
-  dateIntervalBars: ({ x, y, group, period }) => [
+const chartAggs = (restrictions: SearchRestrictons) => ({
+  dateIntervalBars: ({ x, y, group, period }: DateIntervalBarChart) => [
     { $group: { _id: { [`${period}`]: { [`$${period}`]: `$${x}` }, group: `$${group}` }, value: { $sum: `$${y}` } } },
   ],
-  dateLineSingle: ({ x, y, period, agg = 'sum', offset = 0 }) => [
+  dateLineSingle: ({ x, y, period, agg = 'sum', offset = 0 }: DateLineSingleChart) => [
     { $group: { _id: dateGroup(x, period, offset), value: { $sum: agg === 'sum' ? `$${y}` : 1 }, idx: { $min: `$${x}`} } },
     { $sort: { idx: 1 } },
     { $project: {
@@ -510,7 +556,7 @@ const getChart = restrictions => type => ({
     { $group: { _id: null, data: { $push: '$$ROOT' } } },
     { $project: { _id: 0, id: 'results', data: 1 } }
   ],
-  dateLineMultiple: ({ x, y, period, agg = 'sum', offset = 0, group, idPath }) => [
+  dateLineMultiple: ({ x, y, period, agg = 'sum', offset = 0, group, idPath }: DateLineMultipleChart) => [
     { $group: { _id: { date: dateGroup(x, period, offset), group: `$${group}${idPath ? '.' : ''}${idPath || ''}` }, value: { $sum: agg === 'sum' ? `$${y}` : 1 }, idx: { $min: `$${x}`} } },
     { $sort: {
       '_id.date.year': 1,
@@ -526,7 +572,7 @@ const getChart = restrictions => type => ({
     { $group: { _id: '$group', data: { $push: '$$ROOT' } } },
     { $project: { _id: 0, id: '$_id', data: 1 } }
   ],
-  quantityByPeriodCalendar: ({ x, y, offset = 0 }) => [
+  quantityByPeriodCalendar: ({ x, y, offset = 0 }: QuantityByPeriodCalendarChart) => [
     { $group: { _id: dateGroup(x, 'day', offset), value: { $sum: `$${y}` }, idx: { $min: `$${x}`} } },
     { $sort: { idx: 1 } },
     { $project: {
@@ -535,7 +581,7 @@ const getChart = restrictions => type => ({
       value: `$value`
     } },
   ],
-  topNPie: ({ field, idPath, size = 10, unwind, lookup, include }) => [
+  topNPie: ({ field, idPath, size = 10, unwind, lookup, include }: TopNPieChart) => [
     ...(unwind ? [{ $unwind: `$${unwind}` }] : []),
     { $group: { _id: `$${field}${idPath ? '.' : ''}${idPath || ''}`, count: { $sum: 1 }, labelValue: { $first: `$${field}` } } },
     { $sort: { count: -1 } },
@@ -560,7 +606,7 @@ const getChart = restrictions => type => ({
         _id: 1,
         count: 1,
         ...arrayToObject(
-          include => `lookup.${include}`,
+          (include: string) => `lookup.${include}`,
           _.constant(1)
         )(lookup.include),
       } }] : []
@@ -572,14 +618,14 @@ const getChart = restrictions => type => ({
       lookup: 1,
       ...(include ? {
         ...arrayToObject(
-          include => `labelValue.${include}`,
+          (include: string) => `labelValue.${include}`,
           _.constant(1)
         )(include)
       } : { labelValue: 1 }),
       value: `$count`
     } }
   ],
-  dayOfWeekSummaryBars: ({ x, y, group, idPath, agg, offset = 0 }) => [
+  dayOfWeekSummaryBars: ({ x, y, group, idPath, agg, offset = 0 }: DayOfWeekSummaryBarsChart) => [
     { $group: {
       _id: { day: { $dayOfWeek: { date: `$${x}`, timezone: timezoneOffset(offset) } }, [`${group || 'results'}`]: group ? `$${group}${idPath ? '.' : ''}${idPath || ''}` : 'results' },
       value: { $sum: agg === 'sum' ? `$${y}` : `$${y}` }
@@ -600,7 +646,7 @@ const getChart = restrictions => type => ({
       id: { $arrayElemAt: [[null, 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], `$id`] }
     } }
   ],
-  hourOfDaySummaryLine: ({ x, y, group, idPath, agg, offset = 0 }) => [
+  hourOfDaySummaryLine: ({ x, y, group, idPath, agg, offset = 0 }: HourOfDaySummaryLineChart) => [
     { $group: {
       _id: { hour: { $hour: { date: `$${x}`, timezone: timezoneOffset(offset) } }, [`${group || 'results'}`]: group ? `$${group}${idPath ? '.' : ''}${idPath || ''}` : 'results' },
       value: { $sum: agg === 'sum' ? `$${y}` : `$${y}` }
@@ -618,10 +664,10 @@ const getChart = restrictions => type => ({
       data: 1
     } }
   ],
-  summaryTable: ({ rows, group, sortField, nameField }) => [
+  summaryTable: ({ rows, group, sortField, nameField }: SummaryTableChart) => [
     ..._.flow(
       _.filter('unwind'),
-      _.map(({ key, field }) => ({
+      _.map(({ key = '', field = '' }) => ({
         $set: { [key]: { $reduce: {
           input: `$${field}`,
           initialValue: 0,
@@ -634,13 +680,13 @@ const getChart = restrictions => type => ({
       name: { $first: `$${nameField}` },
       ..._.flow(
         _.filter('agg'),
-        _.map(({ key, field, agg, unwind }) => [key, { [`$${agg}`]: `$${unwind ? key : field}` }]),
+        _.map(({ key = '', field = '', agg = '', unwind = false } ) => [key, { [`$${agg}`]: `$${unwind ? key : field}` }]),
         _.fromPairs,
       )(rows),
     } },
     ...(sortField ? [{ $sort: { [`${sortField}`]: -1 } }] : [])
   ],
-  fieldStats: ({ unwind, field, idPath, statsField, include, page = 1, pageSize, sort, sortDir }) => [
+  fieldStats: ({ unwind, field, idPath, statsField, include, page = 1, pageSize, sort, sortDir }: FieldStatsChart) => [
     ...(unwind ? [{ $unwind: { path: `$${unwind}`, preserveNullAndEmptyArrays: true  } }] : []),
     {
       $group: {
@@ -648,7 +694,7 @@ const getChart = restrictions => type => ({
         value: { $first: `$${field}` }, // need to use `valueInclude`
         count: { $sum: 1 },
         ..._.flow(
-          _.map(stat => [stat, { [`$${stat}`]: `$${statsField}`}]),
+          _.map((stat: string) => [stat, { [`$${stat}`]: `$${statsField}`}]),
           _.fromPairs
         )(_.without(['count'], include))
       }
@@ -665,20 +711,22 @@ const getChart = restrictions => type => ({
     { $skip: (page - 1) * pageSize },
     { $limit: pageSize }
   ],
-  totalsBar: ({ columns }) => [
+  totalsBar: ({ columns }: TotalsBarChart) => [
     { $group: {
       _id: null,
       ..._.flow(
-        _.map(({ key, field, agg }) => [key || field, { [`$${agg === 'count' ? 'sum' : agg}`]: agg === 'count' ? 1 : `$${field}` }]),
+        _.map(({ key, field, agg }: TotalsBarColumn) => [key || field, { [`$${agg === 'count' ? 'sum' : agg}`]: agg === 'count' ? 1 : `$${field}` }]),
         _.fromPairs
       )(columns)
     } }
   ]
-}[type])
+})
 
-let getCharts = (restrictions, charts) => _.zipObject(_.map('key', charts), _.map(chart => getChart(restrictions)(chart.type)(chart), charts))
+const getChart = (restrictions: SearchRestrictons) => (type: keyof ReturnType<typeof chartAggs>): Function => (chartAggs(restrictions)[type])
 
-let lookupStages = (restrictions, lookups) => {
+let getCharts = (restrictions: SearchRestrictons, charts: Chart[]) => _.zipObject(_.map('key', charts), _.map((chart: Chart) => getChart(restrictions)(chart.type as keyof ReturnType<typeof chartAggs>)(chart), charts))
+
+let lookupStages = (restrictions: SearchRestrictons, lookups: { [k: string]: Lookup }) => {
   let result = []
   for (let lookupName in lookups) {
     let {
@@ -732,25 +780,30 @@ module.exports = ({
   restrictSchemasForUser = _.constant(_.identity),
   servicesPath = 'services/',
   maxResultSize
-}) => async app => {
+}: {
+  services: string[]
+  restrictSchemasForUser?: Function
+  servicesPath?: string
+  maxResultSize?: number
+}) => async (app: FeathersApp) => {
   let schemas = _.flow(
-    _.map(service => [service, require(`${servicesPath}${service}/schema`)]),
+    _.map((service: string) => [service, require(`${servicesPath}${service}/schema`)]),
     _.fromPairs,
   )(services)
   
   app.use('/schema', {
-    get: async (collection, { user }) => {
+    get: async (collection: string, { user }: FeathersContextParams) => {
       return restrictSchemasForUser(user)(schemas)[collection]
     },
-    find: async ({ user }) => {
+    find: async ({ user }: FeathersContextParams) => {
       return restrictSchemasForUser(user)(schemas)
     },
   })
 
   let hooks = _.flow(
-    _.map(service => [service, require(`${servicesPath}${service}/hooks`)]),
+    _.map((service: string) => [service, require(`${servicesPath}${service}/hooks`)]),
     _.fromPairs,
-    _.mapValues(({ before, after }) => ({
+    _.mapValues(({ before, after }: FeathersServiceHooks) => ({
       before: [...(before?.all || []), ...(before?.find || [])],
       after: [...(after?.find || []), ...(after?.all || [])]
     }))
@@ -772,8 +825,8 @@ module.exports = ({
         charts,
         lookup,
         includeSchema,
-      },
-      params
+      }: Search,
+      params: FeathersContextParams
     ) => {
       if (!_.includes(collection, services)) {
         throw new Error('Unauthorized collection request')
@@ -785,40 +838,41 @@ module.exports = ({
       let schema = await app.service('schema').get(collection)
       let project = arrayToObject(_.identity, _.constant(1))(include || _.keys(schema.properties))
 
-      let collections = _.flow(_.compact, _.uniq)([
+      let collections: string[] = _.flow(_.compact, _.uniq)([
         collection, 
         ..._.map('lookup.from', charts),
         ..._.map('lookup.from', filters),
         ..._.map('from', lookup)
       ])
+
       if (_.size(_.difference(collections, services))) {
         throw new Error('Unauthorized collection request')
       }
 
       let getRestrictions = async () => {
-        let restrictionAggs = await Promise.all(_.map(collectionName => applyRestrictions(collectionName, params), collections))
+        let restrictionAggs = await Promise.all(_.map((collectionName: string) => applyRestrictions(collectionName, params), collections))
         return _.zipObject(collections, restrictionAggs)
       }
 
-      let subqueryFilters = _.filter({ type: 'subqueryFacet' }, filters)
+      let subqueryFilters: SubqueryFacetFilter[] = _.filter({ type: 'subqueryFacet' }, filters)
       let subqueryCollections = _.map('subqueryCollection', subqueryFilters)
       if (_.size(_.difference(subqueryCollections, services))) {
         throw new Error('Unauthorized collection request')
       }
 
       let runSubqueries = _.size(subqueryFilters) ? async () => {
-        let subqueryAggs = await Promise.all(_.map(async ({ values, optionsAreMongoIds, subqueryCollection, subqueryKey, subqueryField, subqueryFieldIdPath, subqueryFieldIsArray }) => [
+        let subqueryAggs = await Promise.all(_.map(async ({ values, optionsAreMongoIds, subqueryCollection, subqueryKey, subqueryField, subqueryFieldIdPath, subqueryFieldIsArray }: SubqueryFacetFilter) => [
           subqueryCollection,
           _.size(values) ? [
             ...await applyRestrictions(subqueryCollection, params),
-            { $match: { [subqueryKey]: { $in: optionsAreMongoIds ? _.map(val => new ObjectId(val), values) : values } } },
+            { $match: { [subqueryKey]: { $in: optionsAreMongoIds ? _.map((val: string) => new ObjectId(val), values) : values } } },
             ...(subqueryFieldIsArray ? [{ $unwind: { path: `$${subqueryField}${subqueryFieldIdPath ? '.' : ''}${subqueryFieldIdPath || ''}`, preserveNullAndEmptyArrays: true }}] : []),
             { $group: { _id: null, value: { $addToSet: `$${subqueryField}${subqueryFieldIdPath ? '.' : ''}${subqueryFieldIdPath || ''}` } } },
             { $unwind: '$value' },
           ]: null
         ], subqueryFilters))
 
-        let subqueryResults = await Promise.all(_.map(agg => _.last(agg) ? app.service(_.first(agg)).Model.aggregate(_.last(agg), { allowDiskUse: true }).toArray() : [], subqueryAggs))
+        let subqueryResults = await Promise.all(_.map((agg: any) => _.last(agg) ? app.service(_.first(agg)).Model.aggregate(_.last(agg), { allowDiskUse: true }).toArray() : [], subqueryAggs))
 
         return _.zipObject(_.map('key', subqueryFilters), _.map(_.map('value'), subqueryResults))
       } : _.noop
@@ -830,7 +884,7 @@ module.exports = ({
 
       let fullQuery = getTypeFilterStages(filters, subqueryValues)
 
-      let aggs = {
+      let aggs: { [k: string]: MongoAggregation } = {
         resultsFacet: [
           ...restrictions[collection],
           ...fullQuery,
@@ -855,7 +909,7 @@ module.exports = ({
 
       let result = _.fromPairs(
         await Promise.all(
-          mapIndexed(async (agg, key) => {
+          mapIndexed(async (agg: MongoAggregation, key: string) => {
             let aggResult = await app.mongodb.db
               .collection(collection)
               .aggregate(agg, { allowDiskUse: true })
@@ -884,7 +938,7 @@ module.exports = ({
 
         result.results = await Promise.all(
           _.map(
-            async result => ({
+            async (result: any[]) => ({
               ...result,
               [field]: await afterHookExecutor({
                 collection: from,
