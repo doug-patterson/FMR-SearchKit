@@ -13,7 +13,7 @@ export interface FieldHasTruthyValueFilter extends BooleanFilter {
 }
 
 export interface PropExistsFilter extends BaseFilter {
-  negate: boolean
+  negate?: boolean
 }
 
 export interface ArraySizeFilter extends BaseFilter {
@@ -102,7 +102,7 @@ export interface DateLineMultipleChart extends BaseChart {
   x: string
   y: string
   period: string
-  agg?: string
+  agg: string
   offset?: number
   group?: string
   idPath?: string
@@ -133,9 +133,9 @@ export interface DayOfWeekSummaryBarsChart extends BaseChart {
   y: string
   period: string
   agg: string
-  offset: number
+  offset?: number
   group: string
-  idPath: string
+  idPath?: string
 }
 
 export interface HourOfDaySummaryLineChart extends BaseChart {
