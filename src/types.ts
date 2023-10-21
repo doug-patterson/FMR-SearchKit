@@ -34,13 +34,13 @@ export interface DateTimeIntervalFilter extends BaseFilter {
 }
 
 export interface FacetFilter extends BaseFilter {
-  idPath: string
-  values: any[]
-  isMongoId: boolean
-  exclude: boolean
+  idPath?: string
+  values?: any[]
+  isMongoId?: boolean
+  exclude?: boolean
   optionSearch?: string
   size?: number
-  include: string[]
+  include?: string[]
   lookup?: {
     from: string
     foreignField: string
@@ -214,7 +214,7 @@ export type MongoAggregation = any
 // someday. needs to cover all the cases, enums, objects, arrays etc
 type BsonSchemaProp = any
 
-// again, a nice-to-have
+// again, nice-to-have
 export type MongoObjectIdConstructor = any
 
 export interface BsonSchema {

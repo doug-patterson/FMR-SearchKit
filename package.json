@@ -52,6 +52,7 @@
     "@typescript-eslint/parser": "^6.2.0",
     "date-fns": "^2.30.0",
     "lodash": "^4.17.21",
+    "mingo": "^6.4.7",
     "ts-node": "^10.9.1",
     "tslib": "^2.6.1",
     "typescript": "^5.1.6"
