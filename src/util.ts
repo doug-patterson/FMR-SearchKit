@@ -15,8 +15,12 @@ import {
 } from 'date-fns'
 import { LodashIteratee } from './types'
 
-export const arrayToObject = _.curry((key: LodashIteratee, val: LodashIteratee, arr: any[]): { [k: string]: any } =>
-  _.flow((v: string): any => _.keyBy(key, v), (obj: any): any => _.mapValues(val, obj))(arr as any)
+export const arrayToObject = _.curry(
+  (key: LodashIteratee, val: LodashIteratee, arr: any[]): { [k: string]: any } =>
+    _.flow(
+      (v: string): any => _.keyBy(key, v),
+      (obj: any): any => _.mapValues(val, obj)
+    )(arr as any)
 )
 
 export const periods = ['day', 'month', 'year']
@@ -24,7 +28,7 @@ export const periods = ['day', 'month', 'year']
 export const timezoneOffset = (num: number) => {
   const sign = num < 0 ? '+' : '-' // reverse the offset received from the browser
   const abs = Math.abs(num)
-  const hours = Math.floor(abs/60)
+  const hours = Math.floor(abs / 60)
   const minutes = abs % 60
   const hoursString = `00${hours}`.substr(-2)
   const minutesString = `00${minutes}`.substr(-2)
@@ -53,7 +57,7 @@ export const dateProject = (period: string) => {
   let field: string
 
   // eslint-disable-next-line
-  while (field = rest.shift() || '') {
+  while ((field = rest.shift() || '')) {
     arr.push('/', { $toString: field })
   }
 
@@ -66,9 +70,9 @@ export const dateProject2 = (period: string) => {
   const [first, ...rest] = _.map((field: string) => `$_id.${field}`, _.reverse(dateGroupPick))
   const arr: any[] = [{ $toString: first }]
   let field: string
-  
+
   // eslint-disable-next-line
-  while (field = rest.shift() || '') {
+  while ((field = rest.shift() || '')) {
     arr.push('-', { $toString: field })
   }
 
@@ -78,11 +82,21 @@ export const dateProject2 = (period: string) => {
 const applyOffset = (endpoint: Date, offset: number): Date => addMinutes(endpoint, 0 - offset)
 
 const intervals = {
-  'Today': (date: Date, offset: number) => ({ from: applyOffset(startOfDay(applyOffset(date, offset)), 0 - offset) }),
-  'Current Week': (date: Date, offset: number) => ({ from: applyOffset(startOfWeek(applyOffset(date, offset)), 0 - offset) }),
-  'Current Month': (date: Date, offset: number) => ({ from: applyOffset(startOfMonth(applyOffset(date, offset)), 0 - offset) }),
-  'Current Quarter': (date: Date, offset: number) => ({ from: applyOffset(startOfQuarter(applyOffset(date, offset)), 0 - offset) }),
-  'Current Year': (date: Date, offset: number) => ({ from: applyOffset(startOfYear(applyOffset(date, offset)), 0 - offset) }),
+  Today: (date: Date, offset: number) => ({
+    from: applyOffset(startOfDay(applyOffset(date, offset)), 0 - offset)
+  }),
+  'Current Week': (date: Date, offset: number) => ({
+    from: applyOffset(startOfWeek(applyOffset(date, offset)), 0 - offset)
+  }),
+  'Current Month': (date: Date, offset: number) => ({
+    from: applyOffset(startOfMonth(applyOffset(date, offset)), 0 - offset)
+  }),
+  'Current Quarter': (date: Date, offset: number) => ({
+    from: applyOffset(startOfQuarter(applyOffset(date, offset)), 0 - offset)
+  }),
+  'Current Year': (date: Date, offset: number) => ({
+    from: applyOffset(startOfYear(applyOffset(date, offset)), 0 - offset)
+  }),
 
   // no offest for these
   'Last Hour': (date: Date) => ({ from: addHours(date, -1) }),
@@ -100,14 +114,29 @@ const intervals = {
   'Last Year': (date: Date) => ({ from: addYears(date, -1) }),
   'Last Two Years': (date: Date) => ({ from: addYears(date, -1) }),
 
-  'Previous Full Day': (date: Date, offset: number) => ({ from: applyOffset(addDays(startOfDay(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfDay(applyOffset(date, offset)), 0 - offset) }),
-  'Previous Full Week': (date: Date, offset: number) => ({ from: applyOffset(addWeeks(startOfWeek(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfWeek(applyOffset(date, offset)), 0 - offset) }),
-  'Previous Full Month': (date: Date, offset: number) => ({ from: applyOffset(addMonths(startOfMonth(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfMonth(applyOffset(date, offset)), 0 - offset) }),
-  'Previous Full Quarter': (date: Date, offset: number) => ({ from: applyOffset(addQuarters(startOfQuarter(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfQuarter(applyOffset(date, offset)), 0 - offset) }),
-  'Previous Full Year': (date: Date, offset: number) => ({ from: applyOffset(addYears(startOfYear(applyOffset(date, offset)), -1), 0 - offset), to: applyOffset(startOfYear(applyOffset(date, offset)), 0 - offset) }),
+  'Previous Full Day': (date: Date, offset: number) => ({
+    from: applyOffset(addDays(startOfDay(applyOffset(date, offset)), -1), 0 - offset),
+    to: applyOffset(startOfDay(applyOffset(date, offset)), 0 - offset)
+  }),
+  'Previous Full Week': (date: Date, offset: number) => ({
+    from: applyOffset(addWeeks(startOfWeek(applyOffset(date, offset)), -1), 0 - offset),
+    to: applyOffset(startOfWeek(applyOffset(date, offset)), 0 - offset)
+  }),
+  'Previous Full Month': (date: Date, offset: number) => ({
+    from: applyOffset(addMonths(startOfMonth(applyOffset(date, offset)), -1), 0 - offset),
+    to: applyOffset(startOfMonth(applyOffset(date, offset)), 0 - offset)
+  }),
+  'Previous Full Quarter': (date: Date, offset: number) => ({
+    from: applyOffset(addQuarters(startOfQuarter(applyOffset(date, offset)), -1), 0 - offset),
+    to: applyOffset(startOfQuarter(applyOffset(date, offset)), 0 - offset)
+  }),
+  'Previous Full Year': (date: Date, offset: number) => ({
+    from: applyOffset(addYears(startOfYear(applyOffset(date, offset)), -1), 0 - offset),
+    to: applyOffset(startOfYear(applyOffset(date, offset)), 0 - offset)
+  })
 }
 
 export type Interval = keyof typeof intervals
 
-export const intervalEndpoints = (interval: keyof typeof intervals, offset: number) => intervals[interval](new Date(), offset)
-
+export const intervalEndpoints = (interval: keyof typeof intervals, offset: number) =>
+  intervals[interval](new Date(), offset)

@@ -1,13 +1,10 @@
-import {
-  BooleanFilter,
-  MongoAggregation
-} from '../types'
+import { BooleanFilter, MongoAggregation } from '../types'
 
 export const filter = ({ field, checked }: BooleanFilter): MongoAggregation =>
-    checked
-      ? [
-          {
-            $match: { [field]: true },
-          },
-        ]
-      : []
+  checked
+    ? [
+        {
+          $match: { [field]: true }
+        }
+      ]
+    : []

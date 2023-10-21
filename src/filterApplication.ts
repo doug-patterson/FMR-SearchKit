@@ -1,4 +1,4 @@
-import _ from'lodash/fp'
+import _ from 'lodash/fp'
 import { Filter, MongoObjectIdConstructor } from './types'
 import { filter as dateTimeInterval } from './nodes/dateTimeInterval'
 import { filter as arrayElementPropFacet } from './nodes/arrayElementPropFacet'
@@ -19,10 +19,19 @@ const typeFilters = (ObjectId: MongoObjectIdConstructor): any => ({
   boolean,
   fieldHasTruthyValue,
   propExists,
-  arraySize,
+  arraySize
 })
 
-const typeFilterStages = (subqueryValues = {}, ObjectId: MongoObjectIdConstructor) => (filter: Filter) => typeFilters(ObjectId)[filter.type]({ ...filter, subqueryValues: subqueryValues[filter.key as keyof typeof subqueryValues] } as any)
+const typeFilterStages =
+  (subqueryValues = {}, ObjectId: MongoObjectIdConstructor) =>
+  (filter: Filter) =>
+    typeFilters(ObjectId)[filter.type]({
+      ...filter,
+      subqueryValues: subqueryValues[filter.key as keyof typeof subqueryValues]
+    } as any)
 
-export const getTypeFilterStages = (queryFilters: Filter[], subqueryValues: { [key: string]: any }, ObjectId: MongoObjectIdConstructor) =>
-  _.flatMap(typeFilterStages(subqueryValues, ObjectId), queryFilters)
+export const getTypeFilterStages = (
+  queryFilters: Filter[],
+  subqueryValues: { [key: string]: any },
+  ObjectId: MongoObjectIdConstructor
+) => _.flatMap(typeFilterStages(subqueryValues, ObjectId), queryFilters)

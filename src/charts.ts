@@ -1,8 +1,5 @@
-import _ from'lodash/fp'
-import {
-  SearchRestrictons,
-  Chart
-} from './types'
+import _ from 'lodash/fp'
+import { SearchRestrictons, Chart } from './types'
 import { results as dateIntervalBars } from './nodes/dateIntervalBars'
 import { results as dateLineSingle } from './nodes/dateLineSingle'
 import { results as dateLineMultiple } from './nodes/dateLineMultiple'
@@ -27,6 +24,17 @@ const chartAggs = (restrictions: SearchRestrictons) => ({
   totalsBar
 })
 
-const getChart = (restrictions: SearchRestrictons) => (type: keyof ReturnType<typeof chartAggs>): any => (chartAggs(restrictions)[type])
+const getChart =
+  (restrictions: SearchRestrictons) =>
+  (type: keyof ReturnType<typeof chartAggs>): any =>
+    chartAggs(restrictions)[type]
 
-export const getCharts = (restrictions: SearchRestrictons, charts: Chart[]) => _.zipObject(_.map('key', charts), _.map((chart: Chart) => getChart(restrictions)(chart.type as keyof ReturnType<typeof chartAggs>)(chart), charts))
+export const getCharts = (restrictions: SearchRestrictons, charts: Chart[]) =>
+  _.zipObject(
+    _.map('key', charts),
+    _.map(
+      (chart: Chart) =>
+        getChart(restrictions)(chart.type as keyof ReturnType<typeof chartAggs>)(chart),
+      charts
+    )
+  )

@@ -62,13 +62,21 @@ export interface SubqueryFacetFilter extends FacetFilter {
   subqueryFieldIsArray: boolean
   subqueryLocalField: string
   subqueryLocalIdPath: string
-  include: string[],
-  optionSearch: string,
+  include: string[]
+  optionSearch: string
   subqueryValues: any[]
 }
 
-
-export type Filter = BooleanFilter | FieldHasTruthyValueFilter | PropExistsFilter | ArraySizeFilter | NumericFilter | DateTimeIntervalFilter | FacetFilter | ArrayElementPropFacetFilter | SubqueryFacetFilter
+export type Filter =
+  | BooleanFilter
+  | FieldHasTruthyValueFilter
+  | PropExistsFilter
+  | ArraySizeFilter
+  | NumericFilter
+  | DateTimeIntervalFilter
+  | FacetFilter
+  | ArrayElementPropFacetFilter
+  | SubqueryFacetFilter
 
 interface BaseChart {
   key: string
@@ -112,8 +120,8 @@ export interface TopNPieChart extends BaseChart {
   size: number
   unwind: boolean
   lookup: {
-    from: string,
-    unwind: boolean,
+    from: string
+    unwind: boolean
     foreignField: string
     include: string[]
   }
@@ -169,17 +177,17 @@ export interface TotalsBarChart extends BaseChart {
   columns: TotalsBarColumn[]
 }
 
-export type Chart = 
-  DateIntervalBarChart |
-  DateLineSingleChart |
-  DateLineMultipleChart |
-  QuantityByPeriodCalendarChart |
-  TopNPieChart |
-  DayOfWeekSummaryBarsChart |
-  HourOfDaySummaryLineChart |
-  SummaryTableChart |
-  FieldStatsChart |
-  TotalsBarChart
+export type Chart =
+  | DateIntervalBarChart
+  | DateLineSingleChart
+  | DateLineMultipleChart
+  | QuantityByPeriodCalendarChart
+  | TopNPieChart
+  | DayOfWeekSummaryBarsChart
+  | HourOfDaySummaryLineChart
+  | SummaryTableChart
+  | FieldStatsChart
+  | TotalsBarChart
 
 export interface Lookup {
   from: string
@@ -212,7 +220,7 @@ export type MongoObjectIdConstructor = any
 export interface BsonSchema {
   bsonType: string
   required?: string[]
-  additionalProperties?: boolean,
+  additionalProperties?: boolean
   properties: BsonSchemaProp[]
 }
 
@@ -224,14 +232,14 @@ export interface Search {
   include?: string[]
   page: number
   pageSize: number
-  filters: Filter[],
-  charts: Chart[],
-  lookup: { [key: string]: Lookup },
-  includeSchema: boolean,
+  filters: Filter[]
+  charts: Chart[]
+  lookup: { [key: string]: Lookup }
+  includeSchema: boolean
 }
 
-export interface SearchRestrictons { 
+export interface SearchRestrictons {
   [k: string]: MongoAggregation
 }
 
-export type LodashIteratee = any 
+export type LodashIteratee = any
