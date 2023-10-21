@@ -9,7 +9,7 @@ import {
   SubqueryFacetFilter,
   SearchRestrictons,
 } from './types'
-import { mapIndexed, arrayToObject } from './util'
+import { arrayToObject } from './util'
 import {
   applyServiceRestrictions,
   getAfterHookExecutor
@@ -153,14 +153,15 @@ module.exports = ({
 
       let result: any = _.fromPairs(
         await Promise.all(
-          mapIndexed(async (agg: MongoAggregation, key: string) => {
+          _.map(async (key: string): Promise<[string, any[]]> => {
+            let agg = aggs[key]
             let aggResult = await app.mongodb.db
               .collection(collection)
               .aggregate(agg, { allowDiskUse: true })
               .toArray()
 
             return [key, aggResult]
-          }, aggs)
+          }, _.keys(aggs))
         )
       )
 

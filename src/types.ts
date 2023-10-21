@@ -225,3 +225,5 @@ export interface Search {
 export interface SearchRestrictons { 
   [k: string]: MongoAggregation
 }
+
+export type LodashIteratee = any 
