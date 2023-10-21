@@ -2,7 +2,6 @@ import {
   DateLineSingleChart,
   MongoAggregation
 } from '../types'
-import _ from 'lodash/fp'
 
 import { dateGroup, dateProject} from '../util'
 

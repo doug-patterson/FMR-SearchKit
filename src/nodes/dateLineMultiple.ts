@@ -12,6 +12,7 @@ const dateProjectMultiple = (period: string) => {
   const arr: any[] = [{ $toString: first }]
   let field: string
   
+  // eslint-disable-next-line
   while (field = rest.shift() || '') {
     arr.push('/', { $toString: field })
   }

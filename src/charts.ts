@@ -27,6 +27,6 @@ const chartAggs = (restrictions: SearchRestrictons) => ({
   totalsBar
 })
 
-const getChart = (restrictions: SearchRestrictons) => (type: keyof ReturnType<typeof chartAggs>): Function => (chartAggs(restrictions)[type])
+const getChart = (restrictions: SearchRestrictons) => (type: keyof ReturnType<typeof chartAggs>): any => (chartAggs(restrictions)[type])
 
 export const getCharts = (restrictions: SearchRestrictons, charts: Chart[]) => _.zipObject(_.map('key', charts), _.map((chart: Chart) => getChart(restrictions)(chart.type as keyof ReturnType<typeof chartAggs>)(chart), charts))

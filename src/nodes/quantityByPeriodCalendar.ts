@@ -2,8 +2,6 @@ import {
   QuantityByPeriodCalendarChart,
   MongoAggregation
 } from '../types'
-import _ from 'lodash/fp'
-
 import { dateGroup, dateProject2 } from '../util'
 
 export const results = ({ x, y, offset = 0 }: QuantityByPeriodCalendarChart): MongoAggregation => [

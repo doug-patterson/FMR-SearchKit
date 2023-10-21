@@ -2,8 +2,6 @@ import {
   HourOfDaySummaryLineChart,
   MongoAggregation
 } from '../types'
-import _ from 'lodash/fp'
-
 import { timezoneOffset } from '../util'
 
 export const results = ({ x, y, group, idPath, agg, offset = 0 }: HourOfDaySummaryLineChart): MongoAggregation => [

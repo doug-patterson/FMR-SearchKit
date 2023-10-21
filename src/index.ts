@@ -28,7 +28,7 @@ module.exports = ({
 }: {
   ObjectId: MongoObjectIdConstructor
   services: string[]
-  restrictSchemasForUser?: Function
+  restrictSchemasForUser?: any
   servicesPath?: string
   maxResultSize?: number
 }) => async (app: FeathersApp) => {

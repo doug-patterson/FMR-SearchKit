@@ -52,6 +52,7 @@ export const dateProject = (period: string) => {
   const arr: any[] = [{ $toString: first }]
   let field: string
 
+  // eslint-disable-next-line
   while (field = rest.shift() || '') {
     arr.push('/', { $toString: field })
   }
@@ -66,6 +67,7 @@ export const dateProject2 = (period: string) => {
   const arr: any[] = [{ $toString: first }]
   let field: string
   
+  // eslint-disable-next-line
   while (field = rest.shift() || '') {
     arr.push('-', { $toString: field })
   }

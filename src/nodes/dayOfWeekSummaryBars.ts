@@ -2,7 +2,6 @@ import {
   DayOfWeekSummaryBarsChart,
   MongoAggregation
 } from '../types'
-import _ from 'lodash/fp'
 
 import { timezoneOffset } from '../util'
 
