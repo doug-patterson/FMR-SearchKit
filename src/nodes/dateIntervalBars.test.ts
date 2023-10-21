@@ -1,6 +1,5 @@
 describe('date interval bars', () => {
-  // not tested as Mingo appears not to support
-  // the period operators like $day, $month
+  // not tested due to mingo issue that needs investigation
   it('is not tested', () => {
     expect(1).toBe(1)
   })
