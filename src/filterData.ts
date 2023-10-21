@@ -1,11 +1,11 @@
 import _ from 'lodash/fp'
-import { Filter, SearchRestrictons, MongoAggregation, MongoObjectIdConstructor } from './types'
+import { Filter, SearchRestrictions, MongoAggregation, MongoObjectIdConstructor } from './types'
 import { results as arrayElementPropFacet } from './nodes/arrayElementPropFacet'
 import { results as facet } from './nodes/facet'
 import { results as subqueryFacet } from './nodes/subqueryFacet'
 
 const typeAggs = (
-  restrictions: SearchRestrictons,
+  restrictions: SearchRestrictions,
   subqueryValues: { [key: string]: any },
   ObjectId: MongoObjectIdConstructor
 ) => ({
@@ -24,7 +24,7 @@ const noResultsTypes = [
 ]
 
 export const getFacets = (
-  restrictions: SearchRestrictons,
+  restrictions: SearchRestrictions,
   subqueryValues: { [k: string]: any[] },
   filters: Filter[],
   collection: string,

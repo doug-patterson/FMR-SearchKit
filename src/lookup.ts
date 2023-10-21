@@ -1,9 +1,9 @@
 import _ from 'lodash/fp'
-import { Lookup, SearchRestrictons } from './types'
+import { Lookup, SearchRestrictions } from './types'
 
 import { arrayToObject } from './util'
 
-export const lookupStages = (restrictions: SearchRestrictons, lookups: { [k: string]: Lookup }) => {
+export const lookupStages = (restrictions: SearchRestrictions, lookups: { [k: string]: Lookup }) => {
   const result = []
   for (const lookupName in lookups) {
     const { localField, foreignField, from, unwind, preserveNullAndEmptyArrays, include, isArray } =

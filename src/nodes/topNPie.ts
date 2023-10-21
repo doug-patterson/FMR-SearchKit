@@ -1,10 +1,10 @@
-import { TopNPieChart, SearchRestrictons, MongoAggregation } from '../types'
+import { TopNPieChart, SearchRestrictions, MongoAggregation } from '../types'
 import _ from 'lodash/fp'
 
 import { arrayToObject } from '../util'
 
 export const results =
-  (restrictions: SearchRestrictons): MongoAggregation =>
+  (restrictions: SearchRestrictions): MongoAggregation =>
   ({ field, idPath, size = 10, unwind, lookup, include }: TopNPieChart) => [
     ...(unwind ? [{ $unwind: `$${unwind}` }] : []),
     {

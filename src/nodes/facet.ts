@@ -1,6 +1,6 @@
 import {
   FacetFilter,
-  SearchRestrictons,
+  SearchRestrictions,
   Filter,
   MongoAggregation,
   MongoObjectIdConstructor
@@ -29,7 +29,7 @@ export const filter =
 
 export const results =
   (
-    restrictions: SearchRestrictons,
+    restrictions: SearchRestrictions,
     subqueryValues: { [key: string]: any },
     ObjectId: MongoObjectIdConstructor
   ): MongoAggregation =>
@@ -48,7 +48,7 @@ export const results =
     filters: Filter[],
     collection: string
   ) => [
-    ...restrictions[collection],
+    ...restrictions[collection] || [],
     ...getTypeFilterStages(_.reject({ key }, filters), subqueryValues, ObjectId),
     {
       $unwind: {
@@ -70,7 +70,7 @@ export const results =
               from: lookup.from,
               let: { localId: '$_id' },
               pipeline: [
-                ...restrictions[lookup.from],
+                ...restrictions[lookup.from] || [],
                 {
                   $match: {
                     $expr: { $eq: [`$${lookup.foreignField}`, '$$localId'] }

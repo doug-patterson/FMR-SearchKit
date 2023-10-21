@@ -6,7 +6,7 @@ import {
   MongoAggregation,
   Search,
   SubqueryFacetFilter,
-  SearchRestrictons,
+  SearchRestrictions,
   MongoObjectIdConstructor
 } from './types'
 import { arrayToObject } from './util'
@@ -195,7 +195,7 @@ module.exports =
             }
           : _.noop
 
-        const [restrictions, subqueryValues]: [SearchRestrictons, any] = await Promise.all([
+        const [restrictions, subqueryValues]: [SearchRestrictions, any] = await Promise.all([
           getRestrictions(),
           runSubqueries()
         ])

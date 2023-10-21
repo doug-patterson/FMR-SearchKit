@@ -238,7 +238,7 @@ export interface Search {
   includeSchema: boolean
 }
 
-export interface SearchRestrictons {
+export interface SearchRestrictions {
   [k: string]: MongoAggregation
 }
 

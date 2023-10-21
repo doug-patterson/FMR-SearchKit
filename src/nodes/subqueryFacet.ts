@@ -1,7 +1,7 @@
 import {
   SubqueryFacetFilter,
   Filter,
-  SearchRestrictons,
+  SearchRestrictions,
   MongoAggregation,
   MongoObjectIdConstructor
 } from '../types'
@@ -24,7 +24,7 @@ export const filter = ({ field, idPath, subqueryValues }: SubqueryFacetFilter): 
 
 export const results =
   (
-    restrictions: SearchRestrictons,
+    restrictions: SearchRestrictions,
     subqueryValues: { [key: string]: any },
     ObjectId: MongoObjectIdConstructor
   ) =>
