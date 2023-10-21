@@ -10,7 +10,7 @@ import { Interval, intervalEndpoints } from '../util'
 
 export const filter = ({ field, from, to, interval, offset }: DateTimeIntervalFilter): MongoAggregation => {
   if (interval) {
-    let endpoints: { from?: Date, to?: Date } = intervalEndpoints(interval as Interval, offset || 0)
+    const endpoints: { from?: Date, to?: Date } = intervalEndpoints(interval as Interval, offset || 0)
     to = endpoints.to
     from = endpoints.from
   } else {

@@ -5,7 +5,7 @@ import {
   FeathersServiceHooks,
 } from './types'
 
-let makeContextForBeforeHooks = ({ app, params, collection }: { app: FeathersApp, params: FeathersContextParams, collection: string}) => ({
+const makeContextForBeforeHooks = ({ app, params, collection }: { app: FeathersApp, params: FeathersContextParams, collection: string}) => ({
   params: { ...params, query: {} },
   type: 'before',
   method: 'find',
@@ -14,22 +14,22 @@ let makeContextForBeforeHooks = ({ app, params, collection }: { app: FeathersApp
   app,
 })
 
-export let applyServiceRestrictions = ({ app, hooks }: { app: FeathersApp, hooks: FeathersServiceHooks }) => async (collection: string, params: FeathersContextParams) => {
-  let beforeHooks = _.get(`${collection}.before`, hooks) || []
+export const applyServiceRestrictions = ({ app, hooks }: { app: FeathersApp, hooks: FeathersServiceHooks }) => async (collection: string, params: FeathersContextParams) => {
+  const beforeHooks = _.get(`${collection}.before`, hooks) || []
   let beforeContext = makeContextForBeforeHooks({ app, params, collection })
   
-  for (let hook of beforeHooks) {
+  for (const hook of beforeHooks) {
     beforeContext = (await hook(beforeContext)) || beforeContext
   }
 
-  let beforeHookQueryProps = _.keys(beforeContext.params.query)
-  let props = _.reject((prop: string) => _.includes(prop, ['$skip', '$limit']), beforeHookQueryProps)
-  let beforeHookQuery = _.pick(props, beforeContext.params.query)
+  const beforeHookQueryProps = _.keys(beforeContext.params.query)
+  const props = _.reject((prop: string) => _.includes(prop, ['$skip', '$limit']), beforeHookQueryProps)
+  const beforeHookQuery = _.pick(props, beforeContext.params.query)
 
   return [{ $match: beforeHookQuery }]
 }
 
-let makeContextForAfterHooks = ({
+const makeContextForAfterHooks = ({
     app,
     params,
     field,
@@ -48,7 +48,7 @@ let makeContextForAfterHooks = ({
   app,
 })
 
-export let getAfterHookExecutor = ({ app, hooks }: { app: FeathersApp, hooks: FeathersServiceHooks}) => ({ collection, field, params }: { collection: string, field?: string, params: any}) => async (record: any) => {
+export const getAfterHookExecutor = ({ app, hooks }: { app: FeathersApp, hooks: FeathersServiceHooks}) => ({ collection, field, params }: { collection: string, field?: string, params: any}) => async (record: any) => {
   let afterContext = makeContextForAfterHooks({
     app,
     params,
@@ -56,9 +56,9 @@ export let getAfterHookExecutor = ({ app, hooks }: { app: FeathersApp, hooks: Fe
     record,
   })
 
-  let afterHooks = _.get(`${collection}.after`, hooks) || []
+  const afterHooks = _.get(`${collection}.after`, hooks) || []
 
-  for (let hook of afterHooks) {
+  for (const hook of afterHooks) {
     afterContext = (await hook(afterContext)) || afterContext
   }
   return _.flow(_.castArray, _.first)(_.get('result', afterContext))

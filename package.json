@@ -26,6 +26,7 @@
     "build:cjs": "tsc --module commonjs --outDir dist/cjs",
     "test": "NODE_OPTIONS=--experimental-vm-modules npx jest",
     "lint": "eslint \"{**/*,*}.{js,ts,jsx,tsx}\"",
+    "lint:fix": "eslint --fix \"{**/*,*}.{js,ts,jsx,tsx}\"",
     "prettier": "prettier --write \"{src,tests,example/src}/**/*.{js,ts,jsx,tsx}\""
   },
   "repository": {

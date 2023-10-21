@@ -10,7 +10,7 @@ import { filter as fieldHasTruthyValue } from './nodes/fieldHasTruthyValue'
 import { filter as propExists } from './nodes/propExists'
 import { filter as arraySize } from './nodes/arraySize'
 
-let typeFilters = (ObjectId: MongoObjectIdConstructor): any => ({
+const typeFilters = (ObjectId: MongoObjectIdConstructor): any => ({
   dateTimeInterval,
   arrayElementPropFacet: arrayElementPropFacet(ObjectId),
   facet: facet(ObjectId),
@@ -22,7 +22,7 @@ let typeFilters = (ObjectId: MongoObjectIdConstructor): any => ({
   arraySize,
 })
 
-let typeFilterStages = (subqueryValues = {}, ObjectId: MongoObjectIdConstructor) => (filter: Filter) => typeFilters(ObjectId)[filter.type]({ ...filter, subqueryValues: subqueryValues[filter.key as keyof typeof subqueryValues] } as any)
+const typeFilterStages = (subqueryValues = {}, ObjectId: MongoObjectIdConstructor) => (filter: Filter) => typeFilters(ObjectId)[filter.type]({ ...filter, subqueryValues: subqueryValues[filter.key as keyof typeof subqueryValues] } as any)
 
-export let getTypeFilterStages = (queryFilters: Filter[], subqueryValues: { [key: string]: any }, ObjectId: MongoObjectIdConstructor) =>
+export const getTypeFilterStages = (queryFilters: Filter[], subqueryValues: { [key: string]: any }, ObjectId: MongoObjectIdConstructor) =>
   _.flatMap(typeFilterStages(subqueryValues, ObjectId), queryFilters)

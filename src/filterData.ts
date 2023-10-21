@@ -9,21 +9,21 @@ import { results as arrayElementPropFacet } from './nodes/arrayElementPropFacet'
 import { results as facet } from './nodes/facet'
 import { results as subqueryFacet } from './nodes/subqueryFacet'
 
-let typeAggs = (restrictions: SearchRestrictons, subqueryValues: { [key: string]: any }, ObjectId: MongoObjectIdConstructor) => ({
+const typeAggs = (restrictions: SearchRestrictons, subqueryValues: { [key: string]: any }, ObjectId: MongoObjectIdConstructor) => ({
   arrayElementPropFacet: arrayElementPropFacet(restrictions, subqueryValues, ObjectId),
   facet: facet(restrictions, subqueryValues, ObjectId),
   subqueryFacet: subqueryFacet (restrictions, subqueryValues, ObjectId),
 })
 
-let noResultsTypes = ['propExists', 'numeric', 'dateTimeInterval', 'boolean', 'fieldHasTruthyValue', 'arraySize']
+const noResultsTypes = ['propExists', 'numeric', 'dateTimeInterval', 'boolean', 'fieldHasTruthyValue', 'arraySize']
 
-export let getFacets = (restrictions: SearchRestrictons, subqueryValues: { [k: string]: any[]}, filters: Filter[], collection: string, ObjectId: MongoObjectIdConstructor) => {
-  let facetFilters = _.reject((f: Filter) => _.includes(f.type, noResultsTypes), filters)
-  let result: { [k: string]: MongoAggregation } = {}
+export const getFacets = (restrictions: SearchRestrictons, subqueryValues: { [k: string]: any[]}, filters: Filter[], collection: string, ObjectId: MongoObjectIdConstructor) => {
+  const facetFilters = _.reject((f: Filter) => _.includes(f.type, noResultsTypes), filters)
+  const result: { [k: string]: MongoAggregation } = {}
 
-  let restrictedTypeAggs: { [k: string]: MongoAggregation } = typeAggs(restrictions, subqueryValues, ObjectId)
+  const restrictedTypeAggs: { [k: string]: MongoAggregation } = typeAggs(restrictions, subqueryValues, ObjectId)
 
-  for (let filter of _.values(facetFilters)) {
+  for (const filter of _.values(facetFilters)) {
     const resultForKey: MongoAggregation = restrictedTypeAggs[filter.type](filter, filters, collection, subqueryValues)
     result[filter.key] = resultForKey
   }

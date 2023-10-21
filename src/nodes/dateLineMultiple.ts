@@ -6,10 +6,10 @@ import _ from 'lodash/fp'
 import { periods, dateGroup } from '../util'
 
 const dateProjectMultiple = (period: string) => {
-  let dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
+  const dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
 
-  let [first, ...rest] = _.map((field: string) => `$_id.date.${field}`, dateGroupPick)
-  let arr: any[] = [{ $toString: first }]
+  const [first, ...rest] = _.map((field: string) => `$_id.date.${field}`, dateGroupPick)
+  const arr: any[] = [{ $toString: first }]
   let field: string
   
   while (field = rest.shift() || '') {

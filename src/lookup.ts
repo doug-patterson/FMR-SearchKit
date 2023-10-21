@@ -6,10 +6,10 @@ import {
 
 import { arrayToObject } from './util'
 
-export let lookupStages = (restrictions: SearchRestrictons, lookups: { [k: string]: Lookup }) => {
-  let result = []
-  for (let lookupName in lookups) {
-    let {
+export const lookupStages = (restrictions: SearchRestrictons, lookups: { [k: string]: Lookup }) => {
+  const result = []
+  for (const lookupName in lookups) {
+    const {
       localField,
       foreignField,
       from,
@@ -18,7 +18,7 @@ export let lookupStages = (restrictions: SearchRestrictons, lookups: { [k: strin
       include,
       isArray,
     } = lookups[lookupName]
-    let stages = _.compact([
+    const stages = _.compact([
       {
         $lookup: {
           from,

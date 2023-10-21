@@ -32,7 +32,7 @@ module.exports = ({
   servicesPath?: string
   maxResultSize?: number
 }) => async (app: FeathersApp) => {
-  let schemas = _.flow(
+  const schemas = _.flow(
     _.map((service: string) => [service, require(`${servicesPath}${service}/schema`)]),
     _.fromPairs,
   )(services)
@@ -46,7 +46,7 @@ module.exports = ({
     },
   })
 
-  let hooks = _.flow(
+  const hooks = _.flow(
     _.map((service: string) => [service, require(`${servicesPath}${service}/hooks`)]),
     _.fromPairs,
     _.mapValues(({ before, after }: FeathersServiceHooks) => ({
@@ -55,8 +55,8 @@ module.exports = ({
     }))
   )(services)
 
-  let applyRestrictions = applyServiceRestrictions({ app, hooks })
-  let afterHookExecutor = getAfterHookExecutor({ app, hooks })
+  const applyRestrictions = applyServiceRestrictions({ app, hooks })
+  const afterHookExecutor = getAfterHookExecutor({ app, hooks })
 
   app.use('/search', {
     create: async (
@@ -81,10 +81,10 @@ module.exports = ({
         throw new Error('Too many results requested')
       }
 
-      let schema = await app.service('schema').get(collection)
-      let project = arrayToObject(_.identity, _.constant(1))(include || _.keys(schema.properties))
+      const schema = await app.service('schema').get(collection)
+      const project = arrayToObject(_.identity, _.constant(1))(include || _.keys(schema.properties))
 
-      let collections: string[] = _.flow(_.compact, _.uniq)([
+      const collections: string[] = _.flow(_.compact, _.uniq)([
         collection, 
         ..._.map('lookup.from', charts),
         ..._.map('lookup.from', filters),
@@ -95,19 +95,19 @@ module.exports = ({
         throw new Error('Unauthorized collection request')
       }
 
-      let getRestrictions = async () => {
-        let restrictionAggs = await Promise.all(_.map((collectionName: string) => applyRestrictions(collectionName, params), collections))
+      const getRestrictions = async () => {
+        const restrictionAggs = await Promise.all(_.map((collectionName: string) => applyRestrictions(collectionName, params), collections))
         return _.zipObject(collections, restrictionAggs)
       }
 
-      let subqueryFilters = _.filter({ type: 'subqueryFacet' }, filters) as SubqueryFacetFilter[]
-      let subqueryCollections = _.map('subqueryCollection', subqueryFilters)
+      const subqueryFilters = _.filter({ type: 'subqueryFacet' }, filters) as SubqueryFacetFilter[]
+      const subqueryCollections = _.map('subqueryCollection', subqueryFilters)
       if (_.size(_.difference(subqueryCollections, services))) {
         throw new Error('Unauthorized collection request')
       }
 
-      let runSubqueries = _.size(subqueryFilters) ? async () => {
-        let subqueryAggs = await Promise.all(_.map(async ({ values, optionsAreMongoIds, subqueryCollection, subqueryKey, subqueryField, subqueryFieldIdPath, subqueryFieldIsArray }: SubqueryFacetFilter) => [
+      const runSubqueries = _.size(subqueryFilters) ? async () => {
+        const subqueryAggs = await Promise.all(_.map(async ({ values, optionsAreMongoIds, subqueryCollection, subqueryKey, subqueryField, subqueryFieldIdPath, subqueryFieldIsArray }: SubqueryFacetFilter) => [
           subqueryCollection,
           _.size(values) ? [
             ...await applyRestrictions(subqueryCollection, params),
@@ -118,19 +118,19 @@ module.exports = ({
           ]: null
         ], subqueryFilters))
 
-        let subqueryResults = await Promise.all(_.map((agg: any) => _.last(agg) ? app.service(_.first(agg)).Model.aggregate(_.last(agg), { allowDiskUse: true }).toArray() : [], subqueryAggs))
+        const subqueryResults = await Promise.all(_.map((agg: any) => _.last(agg) ? app.service(_.first(agg)).Model.aggregate(_.last(agg), { allowDiskUse: true }).toArray() : [], subqueryAggs))
 
         return _.zipObject(_.map('key', subqueryFilters), _.map(_.map('value'), subqueryResults))
       } : _.noop
 
-      let [restrictions, subqueryValues]: [SearchRestrictons, any] = await Promise.all([
+      const [restrictions, subqueryValues]: [SearchRestrictons, any] = await Promise.all([
         getRestrictions(),
         runSubqueries()
       ])
 
-      let fullQuery = getTypeFilterStages(filters, subqueryValues, ObjectId)
+      const fullQuery = getTypeFilterStages(filters, subqueryValues, ObjectId)
 
-      let aggs: { [k: string]: MongoAggregation } = {
+      const aggs: { [k: string]: MongoAggregation } = {
         resultsFacet: [
           ...restrictions[collection],
           ...fullQuery,
@@ -156,8 +156,8 @@ module.exports = ({
       let result: any = _.fromPairs(
         await Promise.all(
           _.map(async (key: string): Promise<[string, any[]]> => {
-            let agg = aggs[key]
-            let aggResult = await app.mongodb.db
+            const agg = aggs[key]
+            const aggResult = await app.mongodb.db
               .collection(collection)
               .aggregate(agg, { allowDiskUse: true })
               .toArray()
@@ -167,7 +167,7 @@ module.exports = ({
         )
       )
 
-      let resultsFacet: any = _.first(result.resultsFacet)
+      const resultsFacet: any = _.first(result.resultsFacet)
 
       result = {
         ..._.omit(['resultsFacet'], result),
@@ -180,8 +180,8 @@ module.exports = ({
         _.map(afterHookExecutor({ collection, params }), result.results)
       )
 
-      for (let field in lookup) {
-        let { from } = lookup[field]
+      for (const field in lookup) {
+        const { from } = lookup[field]
 
         result.results = await Promise.all(
           _.map(

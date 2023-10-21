@@ -15,19 +15,19 @@ import {
 } from 'date-fns'
 import { LodashIteratee } from './types'
 
-export let arrayToObject = _.curry((key: LodashIteratee, val: LodashIteratee, arr: any[]): { [k: string]: any } =>
+export const arrayToObject = _.curry((key: LodashIteratee, val: LodashIteratee, arr: any[]): { [k: string]: any } =>
   _.flow((v: string): any => _.keyBy(key, v), (obj: any): any => _.mapValues(val, obj))(arr as any)
 )
 
 export const periods = ['day', 'month', 'year']
 
 export const timezoneOffset = (num: number) => {
-  let sign = num < 0 ? '+' : '-' // reverse the offset received from the browser
-  let abs = Math.abs(num)
-  let hours = Math.floor(abs/60)
-  let minutes = abs % 60
-  let hoursString = `00${hours}`.substr(-2)
-  let minutesString = `00${minutes}`.substr(-2)
+  const sign = num < 0 ? '+' : '-' // reverse the offset received from the browser
+  const abs = Math.abs(num)
+  const hours = Math.floor(abs/60)
+  const minutes = abs % 60
+  const hoursString = `00${hours}`.substr(-2)
+  const minutesString = `00${minutes}`.substr(-2)
 
   return `${sign}${hoursString}${minutesString}`
 }
@@ -40,16 +40,16 @@ export const fullDateGroup = (field: string, timezone: string) => ({
 })
 
 export const dateGroup = (field: string, period: string, offset: number) => {
-  let dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
+  const dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
 
   return _.pick(dateGroupPick, fullDateGroup(field, timezoneOffset(offset)))
 }
 
 export const dateProject = (period: string) => {
-  let dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
+  const dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
 
-  let [first, ...rest] = _.map((field: string) => `$_id.${field}`, dateGroupPick)
-  let arr: any[] = [{ $toString: first }]
+  const [first, ...rest] = _.map((field: string) => `$_id.${field}`, dateGroupPick)
+  const arr: any[] = [{ $toString: first }]
   let field: string
 
   while (field = rest.shift() || '') {
@@ -60,10 +60,10 @@ export const dateProject = (period: string) => {
 }
 
 export const dateProject2 = (period: string) => {
-  let dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
+  const dateGroupPick = _.slice(_.indexOf(period, periods), Infinity, periods)
 
-  let [first, ...rest] = _.map((field: string) => `$_id.${field}`, _.reverse(dateGroupPick))
-  let arr: any[] = [{ $toString: first }]
+  const [first, ...rest] = _.map((field: string) => `$_id.${field}`, _.reverse(dateGroupPick))
+  const arr: any[] = [{ $toString: first }]
   let field: string
   
   while (field = rest.shift() || '') {
@@ -73,9 +73,9 @@ export const dateProject2 = (period: string) => {
   return { $concat: arr }
 }
 
-let applyOffset = (endpoint: Date, offset: number): Date => addMinutes(endpoint, 0 - offset)
+const applyOffset = (endpoint: Date, offset: number): Date => addMinutes(endpoint, 0 - offset)
 
-let intervals = {
+const intervals = {
   'Today': (date: Date, offset: number) => ({ from: applyOffset(startOfDay(applyOffset(date, offset)), 0 - offset) }),
   'Current Week': (date: Date, offset: number) => ({ from: applyOffset(startOfWeek(applyOffset(date, offset)), 0 - offset) }),
   'Current Month': (date: Date, offset: number) => ({ from: applyOffset(startOfMonth(applyOffset(date, offset)), 0 - offset) }),
@@ -107,5 +107,5 @@ let intervals = {
 
 export type Interval = keyof typeof intervals
 
-export let intervalEndpoints = (interval: keyof typeof intervals, offset: number) => intervals[interval](new Date(), offset)
+export const intervalEndpoints = (interval: keyof typeof intervals, offset: number) => intervals[interval](new Date(), offset)
 
