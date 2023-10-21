@@ -1,8 +1,3 @@
-
-export interface Schema {
-
-}
-
 interface BaseFilter {
   key: string
   type: string
@@ -204,9 +199,19 @@ export type FeathersApp = any
 export type FeathersContextParams = any
 export type FeathersServiceHooks = any
 
-// import from Mongo
+// we can improve this to roughly AggregationNode[] || { [k: string]: AggregationNode }
+// but the code will need to be updated to actually test for the cases
 export type MongoAggregation = any
-export type BsonSchema = any
+
+// someday. needs to cover all the cases, enums, objects, arrays etc
+type BsonSchemaProp = any
+
+export interface BsonSchema {
+  bsonType: string
+  required?: string[]
+  additionalProperties?: boolean,
+  properties: BsonSchemaProp[]
+}
 
 export interface Search {
   id?: string
