@@ -2,14 +2,14 @@ import {
   FacetFilter,
   SearchRestrictons,
   Filter,
-  MongoAggregation
+  MongoAggregation,
+  MongoObjectIdConstructor
 } from '../types'
-import { ObjectId } from 'mongodb'
 import _ from 'lodash/fp'
 import { arrayToObject } from '../util'
 import { getTypeFilterStages } from '../filterApplication'
 
-export const filter = ({ field, idPath, values, isMongoId, exclude }: FacetFilter): MongoAggregation =>
+export const filter = (ObjectId: MongoObjectIdConstructor) => ({ field, idPath, values, isMongoId, exclude }: FacetFilter): MongoAggregation =>
     _.size(values)
       ? [
           {
@@ -25,13 +25,13 @@ export const filter = ({ field, idPath, values, isMongoId, exclude }: FacetFilte
         ]
       : []
 
-export const results = (restrictions: SearchRestrictons, subqueryValues: { [key: string]: any }): MongoAggregation => (
+export const results = (restrictions: SearchRestrictons, subqueryValues: { [key: string]: any }, ObjectId: MongoObjectIdConstructor): MongoAggregation => (
   { key, field, idPath, include, values = [], isMongoId, lookup, optionSearch, size = 100 }: FacetFilter,
   filters: Filter[],
   collection: string
 ) => [
   ...restrictions[collection],
-  ...getTypeFilterStages(_.reject({ key }, filters), subqueryValues),
+  ...getTypeFilterStages(_.reject({ key }, filters), subqueryValues, ObjectId),
   { $unwind: { path: `$${field}${idPath ? '.' : ''}${idPath || ''}`, preserveNullAndEmptyArrays: true } },
   { $group: { _id: `$${field}${idPath ? '.' : ''}${idPath || ''}`, count: { $sum: 1 }, value: { $first: `$${field}` } } },
   ...(lookup

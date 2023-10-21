@@ -2,12 +2,12 @@ import {
   SubqueryFacetFilter,
   Filter,
   SearchRestrictons,
-  MongoAggregation
+  MongoAggregation,
+  MongoObjectIdConstructor
 } from '../types'
 import _ from 'lodash/fp'
 import { getTypeFilterStages } from '../filterApplication'
 import { arrayToObject } from '../util'
-import { ObjectId } from 'mongodb'
 
 export const filter = ({
   field,
@@ -26,13 +26,13 @@ export const filter = ({
       ]
     : []
 
-export const results = (restrictions: SearchRestrictons, subqueryValues: { [key: string]: any }) => (
+export const results = (restrictions: SearchRestrictons, subqueryValues: { [key: string]: any }, ObjectId: MongoObjectIdConstructor) => (
   { key, field, idPath, subqueryLocalIdPath, subqueryCollection, subqueryField, include, values = [], optionsAreMongoIds, optionSearch, size = 100, lookup }: SubqueryFacetFilter,
   filters: Filter[],
   collection: string
 ): MongoAggregation => [
   ...restrictions[collection],
-  ...getTypeFilterStages(_.reject({ key }, filters), subqueryValues),
+  ...getTypeFilterStages(_.reject({ key }, filters), subqueryValues, ObjectId),
   { $group: { _id: `$${field}${idPath ? '.' : ''}${idPath || ''}`, count: { $sum: 1 } } },
   { $lookup: {
     from: subqueryCollection,

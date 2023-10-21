@@ -206,6 +206,9 @@ export type MongoAggregation = any
 // someday. needs to cover all the cases, enums, objects, arrays etc
 type BsonSchemaProp = any
 
+// again, a nice-to-have
+export type MongoObjectIdConstructor = any
+
 export interface BsonSchema {
   bsonType: string
   required?: string[]

@@ -1,5 +1,4 @@
 import _ from'lodash/fp'
-import { ObjectId } from 'mongodb'
 import {
   FeathersApp,
   FeathersContextParams,
@@ -8,6 +7,7 @@ import {
   Search,
   SubqueryFacetFilter,
   SearchRestrictons,
+  MongoObjectIdConstructor
 } from './types'
 import { arrayToObject } from './util'
 import {
@@ -20,11 +20,13 @@ import { getCharts } from './charts'
 import { lookupStages } from './lookup'
 
 module.exports = ({
+  ObjectId,
   services,
   restrictSchemasForUser = _.constant(_.identity),
   servicesPath = 'services/',
   maxResultSize
 }: {
+  ObjectId: MongoObjectIdConstructor
   services: string[]
   restrictSchemasForUser?: Function
   servicesPath?: string
@@ -126,7 +128,7 @@ module.exports = ({
         runSubqueries()
       ])
 
-      let fullQuery = getTypeFilterStages(filters, subqueryValues)
+      let fullQuery = getTypeFilterStages(filters, subqueryValues, ObjectId)
 
       let aggs: { [k: string]: MongoAggregation } = {
         resultsFacet: [
@@ -148,7 +150,7 @@ module.exports = ({
             ...getCharts(restrictions, charts)
           } }
         ],
-        ...getFacets(restrictions, subqueryValues, filters, collection)
+        ...getFacets(restrictions, subqueryValues, filters, collection, ObjectId)
       }
 
       let result: any = _.fromPairs(

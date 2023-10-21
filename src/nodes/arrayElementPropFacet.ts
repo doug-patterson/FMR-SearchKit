@@ -2,14 +2,14 @@ import {
   ArrayElementPropFacetFilter,
   Filter,
   SearchRestrictons,
-  MongoAggregation
+  MongoAggregation,
+  MongoObjectIdConstructor
 } from '../types'
 import { arrayToObject } from '../util'
-import { ObjectId } from 'mongodb'
 import _ from 'lodash/fp'
 import { getTypeFilterStages } from '../filterApplication'
 
-export const filter = ({ field, prop, idPath, values, isMongoId, exclude }: ArrayElementPropFacetFilter): MongoAggregation =>
+export const filter = (ObjectId: MongoObjectIdConstructor) => ({ field, prop, idPath, values, isMongoId, exclude }: ArrayElementPropFacetFilter): MongoAggregation =>
     _.size(values)
       ? [
           {
@@ -25,13 +25,13 @@ export const filter = ({ field, prop, idPath, values, isMongoId, exclude }: Arra
         ]
       : []
 
-export const results = (restrictions: SearchRestrictons, subqueryValues: { [key: string]: any }): MongoAggregation => (
+export const results = (restrictions: SearchRestrictons, subqueryValues: { [key: string]: any }, ObjectId: MongoObjectIdConstructor): MongoAggregation => (
   { key, field, prop, values = [], isMongoId, lookup, idPath, include, optionSearch, size = 100 }: ArrayElementPropFacetFilter,
   filters: Filter[],
   collection: string
 ) => [
   ...restrictions[collection],
-  ...getTypeFilterStages(_.reject({ key }, filters), subqueryValues),
+  ...getTypeFilterStages(_.reject({ key }, filters), subqueryValues, ObjectId),
   { $unwind: { path: `$${field}` } },
   { $group: { _id: `$${field}.${prop}${idPath ? '.' : ''}${idPath || ''}`, count: { $addToSet: '$_id' }, value: { $first: idPath ? `$${field}.${prop}`: `$${field}` } } },
   ...(lookup

@@ -1,5 +1,5 @@
 import _ from'lodash/fp'
-import { Filter } from './types'
+import { Filter, MongoObjectIdConstructor } from './types'
 import { filter as dateTimeInterval } from './nodes/dateTimeInterval'
 import { filter as arrayElementPropFacet } from './nodes/arrayElementPropFacet'
 import { filter as facet } from './nodes/facet'
@@ -10,19 +10,19 @@ import { filter as fieldHasTruthyValue } from './nodes/fieldHasTruthyValue'
 import { filter as propExists } from './nodes/propExists'
 import { filter as arraySize } from './nodes/arraySize'
 
-let typeFilters = {
+let typeFilters = (ObjectId: MongoObjectIdConstructor): any => ({
   dateTimeInterval,
-  arrayElementPropFacet,
-  facet,
+  arrayElementPropFacet: arrayElementPropFacet(ObjectId),
+  facet: facet(ObjectId),
   subqueryFacet,
   numeric,
   boolean,
   fieldHasTruthyValue,
   propExists,
   arraySize,
-}
+})
 
-let typeFilterStages = (subqueryValues = {}) => (filter: Filter) => typeFilters[filter.type as keyof typeof typeFilters]({ ...filter, subqueryValues: subqueryValues[filter.key as keyof typeof subqueryValues] } as any)
+let typeFilterStages = (subqueryValues = {}, ObjectId: MongoObjectIdConstructor) => (filter: Filter) => typeFilters(ObjectId)[filter.type]({ ...filter, subqueryValues: subqueryValues[filter.key as keyof typeof subqueryValues] } as any)
 
-export let getTypeFilterStages = (queryFilters: Filter[], subqueryValues: { [key: string]: any }) =>
-  _.flatMap(typeFilterStages(subqueryValues), queryFilters)
+export let getTypeFilterStages = (queryFilters: Filter[], subqueryValues: { [key: string]: any }, ObjectId: MongoObjectIdConstructor) =>
+  _.flatMap(typeFilterStages(subqueryValues, ObjectId), queryFilters)
