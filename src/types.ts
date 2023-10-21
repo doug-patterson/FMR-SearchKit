@@ -102,10 +102,10 @@ export interface DateLineMultipleChart extends BaseChart {
   x: string
   y: string
   period: string
-  agg: string
-  offset: number
-  group: string
-  idPath: string
+  agg?: string
+  offset?: number
+  group?: string
+  idPath?: string
 }
 
 export interface QuantityByPeriodCalendarChart extends BaseChart {
