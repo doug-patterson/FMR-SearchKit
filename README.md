@@ -17,8 +17,10 @@ Install `fmr-searchkit` with your favorite package manager.
 ## Use
 The module assumes the following
 * In the folder for each service you will expose through the searchkit there is a standard Feathers `hooks` file
-* In the each of the same folders there is a BSON schema file called `schema` for the Mongo collection backing the service. In `app.ts` you just add this
+* In the each of the same folders there is a BSON schema file called `schema` for the Mongo collection backing the service.
 * Make the db connection available at `app.mongodb.db` as below
+
+ In `app.ts` you just add this:
 
 ```
 import mongodb, { ObjectId } from 'mongodb'
