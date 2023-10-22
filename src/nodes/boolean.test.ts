@@ -17,7 +17,7 @@ describe('boolean filter', () => {
 
     expect(result).toEqual([
       { name: 'Sally', isMember: true },
-      { name: 'Mohan', isMember: true },
+      { name: 'Mohanx', isMember: true },
     ])
   })
 })
