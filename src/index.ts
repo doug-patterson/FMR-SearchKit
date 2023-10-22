@@ -16,7 +16,7 @@ import { getFacets } from './filterData'
 import { getCharts } from './charts'
 import { lookupStages } from './lookup'
 
-module.exports =
+export const searchkit =
   ({
     ObjectId,
     services,

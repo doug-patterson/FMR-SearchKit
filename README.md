@@ -27,7 +27,7 @@ In `app.ts`:
 
 ```
 import mongodb, { ObjectId } from 'mongodb'
-import searchkit from 'fmr-searchkit'
+import { searchkit } from 'fmr-searchkit'
 
 const client = await MongoClient.connect(/* your connection args */)
 
