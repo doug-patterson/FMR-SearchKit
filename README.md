@@ -2,7 +2,7 @@
 Build rich mongodb search interfaces with cross collection lookups while preserving the security and business logic in your FeathersJS hooks.
 
 ## The Problem
-[FeathersJS](https://feathersjs.com/) imposes great structure on a web application project with the hooks system. In the before hooks for a service one can transform data, check permissions and perform other tasks appropriate before a DB operation, and in the after hooks one can perform side effects an implement further transformations.
+[FeathersJS](https://feathersjs.com/) imposes great structure on a web application project with the hooks system. In the before hooks for a service one can transform data, check permissions and perform other tasks appropriate before a DB operation, and in the after hooks one can perform side effects and implement further transformations.
 
 Let's take _query restriction_ and _data redaction_ as examples of each. A service can have a before hook that restricts the user to their own records by adding their _id to the query. And anther service might have an after hook to redact passwords or other credentials.
 
