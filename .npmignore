@@ -14,6 +14,12 @@ CVS
 npm-debug.log
 .npmrc
 .github
+.eslintignore
+.eslintrc
+.prettierrc.json
+babel.config.cjs
+jestconfig.json
+tsconfig.json
 
 config.gypi
 package-lock.json
