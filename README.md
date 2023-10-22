@@ -20,7 +20,7 @@ The module assumes the following
 * In the each of the same folders there is a BSON schema file called `schema` for the Mongo collection backing the service.
 * Make the db connection available at `app.mongodb.db` as below
 
- In `app.ts` you just add this:
+In `app.ts`:
 
 ```
 import mongodb, { ObjectId } from 'mongodb'
