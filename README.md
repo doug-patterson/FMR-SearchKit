@@ -24,13 +24,14 @@ In `app.ts`:
 
 ```
 import mongodb, { ObjectId } from 'mongodb'
+import searchkit from 'fmr-searchkit'
 
 const client = await MongoClient.connect(/* your connection args */)
 
 app.mongodb = { db: client.db() }
 
 app.configure(
-  searchKit({
+  searchkit({
     ObjectId,
     services: [
       'service1',
