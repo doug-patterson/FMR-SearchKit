@@ -1,0 +1,10 @@
+{
+  "transform": {
+    "\\.(ts|tsx)$": "ts-jest"
+  },
+  "testRegex": "(test|spec)\\.(jsx?|tsx?)$",
+  "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
+  "testEnvironment": "jsdom",
+  "modulePathIgnorePatterns": ["dist", "node_modules"],
+  "testPathIgnorePatterns": ["dist", "node_modules"]
+}
