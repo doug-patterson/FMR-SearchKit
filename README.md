@@ -44,10 +44,24 @@ app.configure(
 There are a couple of options as discussed below. You'll likely want to put some of your own hooks on the new `search` and `schema` services this creates, but other than that this is really it - you now have a highly functional search service that reuses all of the hooks you already have on your services.
 
 ## Configuration
-THis section is in progress
+This section is in progress
+
+## API
+The `search` service takes a `POST` or Feathers `create` with a JSON stringified object specifying the search. The properties of this object: 
+
+| Prop            | Required | Default | Comment                                          |
+| --------        | -------  | ------- | ---------                                        |
+| `collection`    | true     | none    | base collection from which results will be drawn |
+| `sortField`     | false    | none    | `asc` or `desc`                                  |
+| `sortDir`       | false    | none    | `asc` or `desc`                                  |
+| `page`          | false    | 1       | `asc` or `desc`                                  |
+| `pageSize`      | false    | 100     | `asc` or `desc`                                  |
+| `include`       | false    | none    | Returns all fields when unset                    |
+| `includeSchema` | false    | false   | Return base schema with the response             |
+| `filters`       | false    | none    | Array of `Filter`. See `./types`                 |
+| `charts`        | false    | none    | Array of `Chart`. See `./types`                  |
+| `lookup`        | false    | none    | Keyed object of `Lookup`. See `./types`          |
+| `id`            | false    | none    | Not used server-side                             |
 
 ## Use
 So how do you use it? This is where (FMR-Searchkit-React)[https://github.com/doug-patterson/FMR-SearchKit-React] comes in. It allows your to build a wide variety of client- and server-rendered searches with React 18 and full Next 13 support. As you can see here the searchkit ships now with about 20 filters and charts. Instructions on how to use them are at (FMR-Searchkit-React)[https://github.com/doug-patterson/FMR-SearchKit-React]
-
-
-
