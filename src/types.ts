@@ -204,6 +204,8 @@ export interface Lookup {
 
 // we'll import proper Feathers types when we upgrade to Feathers 5
 export type FeathersApp = any
+export type FeatherService = any
+export type FeathersContext = any
 export type FeathersContextParams = any
 export type FeathersServiceHooks = any
 

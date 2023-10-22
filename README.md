@@ -68,3 +68,14 @@ The `search` service takes a `POST` or Feathers `create` with a JSON stringified
 
 ## Use
 So how do you use it? This is where (FMR-Searchkit-React)[https://github.com/doug-patterson/FMR-SearchKit-React] comes in. It allows your to build a wide variety of client- and server-rendered searches with React 18 and full Next 13 support. As you can see here the searchkit ships now with about 20 filters and charts. Instructions on how to use them are at (FMR-Searchkit-React)[https://github.com/doug-patterson/FMR-SearchKit-React]
+
+## A note on indexing, `$lookup` and denormalization
+The sad truth is that Mongo shines on single collections when the queries have been anticipated with good indexing and struggles with lookups to other collections when you get beyond maybe 20,000 records, often in ways that defy indexing. So what's the point?
+
+You should think of the `lookup` functionality here as a tool for prototying and offline layouts. There are plenty of applications in the course of a normal web development career where collections are small or users tolerate longer response times. Launching a new product or feature at all but the biggest companies would be an example, as would basic offline analytics functionality for employees.
+
+When you need real performance you need to _denormalize_. Luckily the plan is simple: after every mutation of the records in your collection you run all necessary lookups and write the populated record to another collection. Just change your layout to search the new collection and your done. The live data stays small and queries of the denormalized data perfom. So the lifecycle is like this
+
+* prototype and explore with free use of `lookup`.
+* index properly for the layouts you actually build - all filters will need to be supported by an index and in fact indexes will increase eponentially in number with filters so choose wisely.
+* when indexing still isn't getting you by drop in the `denormalizeAndUpsert` hook provided here and adjust the consuming searchkit layout to point at the new collection with appropriate adjustments.

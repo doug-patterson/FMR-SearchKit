@@ -13,7 +13,7 @@ import {
   addQuarters,
   addYears
 } from 'date-fns'
-import { LodashIteratee } from './types'
+import { LodashIteratee, MongoAggregation, FeathersContext, FeathersApp, FeatherService } from './types'
 
 export const arrayToObject = _.curry(
   (key: LodashIteratee, val: LodashIteratee, arr: any[]): { [k: string]: any } =>
@@ -140,3 +140,32 @@ export type Interval = keyof typeof intervals
 
 export const intervalEndpoints = (interval: keyof typeof intervals, offset: number) =>
   intervals[interval](new Date(), offset)
+
+const runDenormalize = async (
+  lookupAgg: MongoAggregation,
+  denormalize: any,
+  dataService: any,
+  { app, service, result }: { app: FeathersApp, service: FeatherService, result: any & { _id: string }[] }
+) => {
+  const denormalizationData = await service.Model.aggregate([
+    { $match: { _id: _.first(_.castArray(result))._id } },
+    ...lookupAgg
+  ]).next()
+
+  const denormalizedRecord = denormalize(denormalizationData)
+
+  const existing = await app
+    .service(dataService)
+    .Model.findOne({ _id: result._id })
+
+  if (existing) {
+    app.service(dataService).patch(existing._id, denormalizedRecord)
+  } else {
+    app.service(dataService).create(denormalizedRecord)
+  }
+}
+
+export const denormalizeAndUpsert =
+  (lookupAgg: MongoAggregation, denormalize: any, dataService: any) => (context: FeathersContext) => {
+    runDenormalize(lookupAgg, denormalize, dataService, context)
+  }
