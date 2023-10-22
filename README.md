@@ -47,10 +47,7 @@ app.configure(
 )
 ```
 
-There are a couple of options as discussed below. You'll likely want to put some of your own hooks on the new `search` and `schema` services this creates, but other than that this is really it - you now have a highly functional search service that reuses all of the hooks you already have on your services.
-
-## Configuration
-This section is in progress
+You'll likely want to put some of your own hooks on the new `search` and `schema` services this creates, but other than that this is really it - you now have a highly functional search service that reuses the `before` and  `after` `all` and `find` hooks on your services, even on other searches that run lookups and subqueries to the underlying collections.
 
 ## API
 The `search` service takes a `POST` or Feathers `create` with a JSON stringified object specifying the search. The properties of this object: 
