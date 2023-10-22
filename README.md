@@ -70,7 +70,7 @@ The `search` service takes a `POST` or Feathers `create` with a JSON stringified
 | `id`            | false    | none    | Not used server-side                             |
 
 ## Use
-So how do you use it? This is where (FMR-Searchkit-React)[https://github.com/doug-patterson/FMR-SearchKit-React] comes in. It allows your to build a wide variety of client- and server-rendered searches with React 18 and full Next 13 support. As you can see here the searchkit ships now with about 20 filters and charts. Instructions on how to use them are at (FMR-Searchkit-React)[https://github.com/doug-patterson/FMR-SearchKit-React]
+So how do you use it? This is where [FMR-Searchkit-React](https://github.com/doug-patterson/FMR-SearchKit-React) comes in. It allows your to build a wide variety of client- and server-rendered searches with React 18 and full Next 13 support. As you can see here the searchkit ships now with about 20 filters and charts. Instructions on how to use them are at [FMR-Searchkit-React](https://github.com/doug-patterson/FMR-SearchKit-React)
 
 ## A note on indexing, `$lookup` and denormalization
 The sad truth is that Mongo shines on single collections when the queries have been anticipated with good indexing and struggles with lookups to other collections when you get beyond maybe 20,000 records, often in ways that defy indexing. So what's the point?
