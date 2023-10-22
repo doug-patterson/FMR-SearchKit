@@ -6,10 +6,5 @@
   "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
   "testEnvironment": "jsdom",
   "modulePathIgnorePatterns": ["dist", "node_modules"],
-  "testPathIgnorePatterns": ["dist", "node_modules"],
-  "coverageThreshold": {
-    "global": {
-      "lines": 40
-    }
-  }
+  "testPathIgnorePatterns": ["dist", "node_modules"]
 }

@@ -18,6 +18,11 @@
       "ts-jest": {
         "useESM": false
       }
+    },
+    "coverageThreshold": {
+      "global": {
+        "lines": 40
+      }
     }
   },
   "scripts": {
