@@ -55,10 +55,10 @@ The `search` service takes a `POST` or Feathers `create` with a JSON stringified
 | Prop            | Required | Default | Comment                                          |
 | --------        | -------  | ------- | ---------                                        |
 | `collection`    | true     | none    | base collection from which results will be drawn |
-| `sortField`     | false    | none    | `asc` or `desc`                                  |
+| `sortField`     | false    | none    |                                                  |
 | `sortDir`       | false    | none    | `asc` or `desc`                                  |
-| `page`          | false    | 1       | `asc` or `desc`                                  |
-| `pageSize`      | false    | 100     | `asc` or `desc`                                  |
+| `page`          | false    | 1       |                                                  |
+| `pageSize`      | false    | 100     |                                                  |
 | `include`       | false    | none    | Returns all fields when unset                    |
 | `includeSchema` | false    | false   | Return base schema with the response             |
 | `filters`       | false    | none    | Array of `Filter`. See `./types`                 |
