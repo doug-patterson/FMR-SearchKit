@@ -1,6 +1,6 @@
 {
   "name": "fmr-searchkit",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "Sets up a search service for your feathers-mongo server that provides a rich search experience while reusing the security and business logic in your Feathers hooks. Use with the React library FMR-SearchKit-React.",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -57,7 +57,6 @@
     "@typescript-eslint/parser": "^6.2.0",
     "date-fns": "^2.30.0",
     "lodash": "^4.17.21",
-    "mingo": "^6.4.7",
     "ts-node": "^10.9.1",
     "tslib": "^2.6.1",
     "typescript": "^5.1.6"
@@ -73,6 +72,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "esm": "^3.2.25",
     "jest": "^29.6.2",
+    "mingo": "^6.4.7",
     "jest-canvas-mock": "^2.5.2",
     "jest-environment-jsdom": "^29.6.2",
     "prettier": "^3.0.0",
