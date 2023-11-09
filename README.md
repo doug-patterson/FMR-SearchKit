@@ -12,7 +12,7 @@ Now what happens if you want to build a client side web page or app screen that 
 This is what FMR-Searchkit is for. It's a drop-in solution for building a highly functional cross-collection search backed by a full MongoDB aggregation that re-uses the before and after hoooks from your feathers services while building the aggregations and handling the results. Does your user service redact passwords in an after find hook? FMR-Searchkit searches of your user collection will too, right out of the box - whether the user data appears as the main rows of your results or whether it appears as names on a facet filter restricting some other collection. Does your personal_info collection restrict people to their own records in a before find hook? So will FMR-Searchkit searches of that collection, right out of the box. And so on.
 
 ## See it in action
-You can use the searchkit right now at my site [The Logic Resource Center](https://logicresourcecenter.com) where it powers the Sequent, Derivation and Tableaux searches. It also features toward the end of this demo video for my multi-party food and beverage app [Porter](https://orderwithporter.com) where it powers premium merchant interfaces for restautrant operations data.
+You can use the searchkit right now at my site [The Logic Resource Center](https://logicresourcecenter.com) where it powers the Sequent, Derivation and Tableaux searches. It also features toward the end of this [demo video](https://vimeo.com/797072664) for my multi-party food and beverage app [Porter](https://orderwithporter.com) where it powers premium merchant interfaces for restautrant operations data.
 
 ## Installation
 Install `fmr-searchkit` with your favorite package manager.
