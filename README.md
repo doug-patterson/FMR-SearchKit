@@ -9,10 +9,10 @@ Let's take _query restriction_ and _data redaction_ as examples of each. A servi
 Now what happens if you want to build a client side web page or app screen that uses the full power of the MongoDB aggregation framework as applied to your collections? This goes beyond simple CRUD operations as supported by [feathers-mongodb](https://feathersjs.com/api/databases/mongodb.html) and so you'll need to implement your own service. But in this service you'll need to re-implement all of that same restriction and redaction logic. All of this leads to additional highly coupled code in your project, leading to maintainability problems and security leaks and eventually higher costs.
 
 ## The Solution
-This is what FMR-Searchkit is for. It's a drop-in solution for building a highly functional cross-collection search backed by a full MongoDB aggregation that re-uses the before and after hoooks from your feathers services while building the aggregations. Does your user service redact passwords in an after find hook? Searches of your user collection will too, right out of the box - whether user data appears as the main rows of your search as names on a facet filter. Does your personal_info collection restrict people to their own records in a before find hook? So will FMR-Searchkit searches of that collection, right out of the box. And so on.
+This is what FMR-Searchkit is for. It's a drop-in solution for building a highly functional cross-collection search backed by a full MongoDB aggregation that re-uses the before and after hoooks from your feathers services while building the aggregations and handling the results. Does your user service redact passwords in an after find hook? FMR-Searchkit searches of your user collection will too, right out of the box - whether the user data appears as the main rows of your results or whether it appears as names on a facet filter restricting some other collection. Does your personal_info collection restrict people to their own records in a before find hook? So will FMR-Searchkit searches of that collection, right out of the box. And so on.
 
 ## See it in action
-You can use the searchkit right now at my site [The Logic Resource Center](https://logicresourcecenter.com) where it powers the Sequent, Derivation and Tableaux searches.
+You can use the searchkit right now at my site [The Logic Resource Center](https://logicresourcecenter.com) where it powers the Sequent, Derivation and Tableaux searches. It also features toward the end of this demo video for my multi-party food and beverage app [Porter](https://orderwithporter.com) where it powers premium merchant interfaces for restautrant operations data.
 
 ## Installation
 Install `fmr-searchkit` with your favorite package manager.
@@ -21,7 +21,7 @@ Install `fmr-searchkit` with your favorite package manager.
 The module assumes the following
 * In the folder for each service you will expose through the searchkit there is a standard Feathers `hooks` file
 * In the each of the same folders there is a BSON schema file called `schema` for the Mongo collection backing the service.
-* Make the db connection available at `app.mongodb.db` as below
+* The db connection available at `app.mongodb.db` as demonstrated below
 
 In `app.ts`:
 
